@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Design app</title>
-<meta name="description" content="Design screens with an AI agent on a live canvas. Download Design app for Mac and Linux.">
+<meta name="description" content="Design screens with an AI agent on a live canvas. Download Design app for Mac, Windows and Linux.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#e9e9e9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Design app">
-<meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac and Linux.">
+<meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac, Windows and Linux.">
 <meta property="og:url" content="https://dinesh4720.github.io/design-app-releases/">
 <meta property="og:image" content="https://dinesh4720.github.io/design-app-releases/icon-512.png">
 <meta name="twitter:card" content="summary">
@@ -138,9 +138,10 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
 
     <div class="actions" id="pick">
       <a class="button primary" data-asset="mac" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.0/design-app-0.2.0-mac-arm64.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Download for Mac</a>
+      <a class="button" href="#windows">Download for Windows</a>
       <a class="button" href="#linux">Download for Linux</a>
     </div>
-    <p class="note" id="pick-note">Version <span data-version>0.2.0</span>. The Mac app needs a Mac with Apple silicon (M1 or later). Linux builds are for x64 and arm64.</p>
+    <p class="note" id="pick-note">Version <span data-version>0.2.0</span>. The Mac app needs a Mac with Apple silicon (M1 or later). Windows builds are for x64 and Arm, Linux builds for x64 and arm64.</p>
   </header>
 
   <section aria-labelledby="all">
@@ -151,6 +152,17 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
         <a class="row" data-asset="mac" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.0/design-app-0.2.0-mac-arm64.dmg">
           <span><span class="name">Apple silicon</span><span class="tag" hidden>This computer</span><span class="detail">Disk image (.dmg)<span class="sz" data-size="mac">149 MB</span></span></span>
           <span class="size" data-size="mac">149 MB</span><span class="get">Download</span>
+        </a>
+      </div>
+      <div class="group" id="windows">
+        <h3>Windows</h3>
+        <a class="row" data-asset="win-x64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.0/design-app-0.2.0-win-x64-setup.exe">
+          <span><span class="name">Windows 10 and 11, x64</span><span class="tag" hidden>This computer</span><span class="detail">Installer (.exe)<span class="sz" data-size="win-x64">132 MB</span></span></span>
+          <span class="size" data-size="win-x64">132 MB</span><span class="get">Download</span>
+        </a>
+        <a class="row" data-asset="win-arm64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.0/design-app-0.2.0-win-arm64-setup.exe">
+          <span><span class="name">Windows 11, Arm</span><span class="tag" hidden>This computer</span><span class="detail">Installer (.exe)<span class="sz" data-size="win-arm64">126 MB</span></span></span>
+          <span class="size" data-size="win-arm64">126 MB</span><span class="get">Download</span>
         </a>
       </div>
       <div class="group" id="linux">
@@ -188,6 +200,14 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       <div class="cmd"><pre><code>xattr -dr com.apple.quarantine "/Applications/Design app.app"</code></pre></div>
     </div>
     <div>
+      <h3>On Windows</h3>
+      <ol class="steps">
+        <li>Open the installer. If Windows says it protected your PC, that’s because the app isn’t signed yet: click More info, then Run anyway.</li>
+        <li>It installs Design app in your user account, without asking for an administrator, and opens it. After that it’s in the Start menu and on the desktop.</li>
+      </ol>
+      <p class="aside">Claude Code needs <a href="https://git-scm.com/downloads/win">Git for Windows</a> to run on Windows.</p>
+    </div>
+    <div>
       <h3>On Linux</h3>
       <p>On Debian, Ubuntu and their derivatives, install the .deb. It adds Design app to your app menu and <code>design-app</code> to your PATH.</p>
       <div class="cmd"><pre><code>sudo apt install ./<span data-file="deb-x64">design-app-0.2.0-linux-amd64.deb</span></code></pre></div>
@@ -205,7 +225,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       <li>Chrome or Chromium, to take screenshots of your designs.</li>
       <li>To share a design at a link anyone can open: the <a href="https://cli.github.com">GitHub CLI</a>, signed in with <code>gh auth login</code>. Shared designs go on GitHub Pages, in a public repository on your account.</li>
     </ul>
-    <p class="aside">On Linux, Design app updates itself. On a Mac, it tells you when a new version is out, and you download it here.</p>
+    <p class="aside">On Windows and Linux, Design app updates itself. On a Mac, it tells you when a new version is out, and you download it here.</p>
   </section>
 
   <footer>
@@ -224,6 +244,8 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
     "deb-arm64": /-linux-arm64\.deb$/,
     "appimage-x64": /-linux-x86_64\.AppImage$/,
     "appimage-arm64": /-linux-arm64\.AppImage$/,
+    "win-x64": /-win-x64-setup\.exe$/,
+    "win-arm64": /-win-arm64-setup\.exe$/,
   };
   const $$ = (sel) => document.querySelectorAll(sel);
   const mb = (bytes) => `${Math.round(bytes / 1e6)} MB`;
@@ -248,8 +270,10 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       else if (/Win/.test(ua)) os = "Windows";
       else if (/Linux|X11/.test(ua)) os = "Linux";
     }
+    // Windows on Arm says x64 in the user agent; Chrome and Edge tell the
+    // truth when asked.
     let arm = /aarch64|arm64|armv8/i.test(ua);
-    if (os === "Linux" && !arm && data?.getHighEntropyValues) {
+    if ((os === "Linux" || os === "Windows") && !arm && data?.getHighEntropyValues) {
       try { arm = (await data.getHighEntropyValues(["architecture"])).architecture === "arm"; } catch {}
     }
     return { os, arch: arm ? "arm64" : "x64" };
@@ -269,8 +293,12 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       note.textContent = `Version ${version} for ${arch}. The .deb is for Debian and Ubuntu; the AppImage runs on any distribution.`;
       mark(`deb-${arch}`); mark(`appimage-${arch}`);
       if (arch === "arm64") for (const el of $$('[data-file="deb-x64"], [data-file="appimage-x64"]')) el.dataset.file = el.dataset.file.replace("x64", "arm64");
+    } else if (os === "Windows") {
+      box.innerHTML = `<a class="button primary" href="${href(`win-${arch}`)}">${icon}Download for Windows</a>`;
+      note.textContent = `Version ${version}, ${size(`win-${arch}`)}. For ${arch === "arm64" ? "Windows 11 on Arm" : "Windows 10 and 11, x64"}.`;
+      mark(`win-${arch}`);
     } else {
-      note.textContent = `Version ${version}. Design app runs on Mac (Apple silicon) and Linux (x64 and arm64).`;
+      note.textContent = `Version ${version}. Design app runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64).`;
     }
   }
 
