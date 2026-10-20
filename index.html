@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Design app</title>
-<meta name="description" content="Design screens with an AI agent on a live canvas. Download Design app for Mac, Windows and Linux.">
+<meta name="description" content="Design screens with an AI agent on a live canvas. Download Design app for Mac, Windows, Linux and Android.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#e9e9e9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Design app">
-<meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac, Windows and Linux.">
+<meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac, Windows, Linux and Android.">
 <meta property="og:url" content="https://dinesh4720.github.io/design-app-releases/">
 <meta property="og:image" content="https://dinesh4720.github.io/design-app-releases/icon-512.png">
 <meta name="twitter:card" content="summary">
@@ -75,6 +75,7 @@ h1 { font-size: 44px; line-height: 1.1; letter-spacing: -.022em; margin: 0 0 14p
 .button.primary:hover { background: var(--primary-hover); }
 .button svg { width: 16px; height: 16px; flex: none; }
 .note { font-size: 13px; color: var(--muted); margin: 12px 0 0; max-width: 34em; }
+.note a { white-space: nowrap; }
 
 section { margin-top: 64px; }
 h2 { font-size: 18px; line-height: 1.3; margin: 0 0 14px; }
@@ -121,6 +122,8 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
   .row .size { display: none; }
   .row .detail .sz::before { content: ", "; }
   .group h3 { padding-left: 16px; padding-right: 16px; }
+  /* On a phone the button at the top is already this download. */
+  #android .tag { display: none; }
 }
 @media (min-width: 601px) { .row .detail .sz { display: none; } }
 </style>
@@ -139,7 +142,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       <a class="button" href="#windows">Download for Windows</a>
       <a class="button" href="#linux">Download for Linux</a>
     </div>
-    <p class="note" id="pick-note">Version <span data-version>0.2.3</span>. The Mac app needs a Mac with Apple silicon (M1 or later). Windows builds are for x64 and Arm, Linux builds for x64 and arm64.</p>
+    <p class="note" id="pick-note">Version <span data-version>0.2.3</span>. The Mac app needs a Mac with Apple silicon (M1 or later). Windows builds are for x64 and Arm, Linux builds for x64 and arm64. The Android app needs Android 8 or later.</p>
   </header>
 
   <section aria-labelledby="all">
@@ -182,6 +185,13 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
           <span class="size" data-size="appimage-arm64">131 MB</span><span class="get">Download</span>
         </a>
       </div>
+      <div class="group" id="android">
+        <h3>Android</h3>
+        <a class="row" data-asset="android" href="https://github.com/dinesh4720/design-app-releases/releases/download/android-v1.0.0/design-app-1.0.0.apk">
+          <span><span class="name">Android&nbsp;8&nbsp;and&nbsp;later</span><span class="tag" hidden>This phone</span><span class="detail">App (.apk), version <span data-android-version>1.0.0</span><span class="sz" data-size="android">4.2 MB</span></span></span>
+          <span class="size" data-size="android">4.2 MB</span><span class="get">Download</span>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -213,6 +223,15 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       <div class="cmd"><pre><code>chmod +x <span data-file="appimage-x64">design-app-0.2.3-linux-x86_64.AppImage</span>
 ./<span data-file="appimage-x64">design-app-0.2.3-linux-x86_64.AppImage</span></code></pre></div>
       <p class="aside">On Ubuntu 24.04 and later, the AppImage may need <code>--no-sandbox</code> to start. The .deb doesn’t.</p>
+    </div>
+    <div id="on-android">
+      <h3>On Android</h3>
+      <ol class="steps">
+        <li>Open the downloaded .apk, from the notification or your Downloads.</li>
+        <li>If Android asks, allow your browser to install apps, then go back and tap Install.</li>
+        <li>Play Protect may say “App scan recommended”, because the app isn’t from Google Play. Tap Scan app, then install it.</li>
+      </ol>
+      <p class="aside">After that, the app updates itself: when a new version is out, it asks to update.</p>
     </div>
   </section>
 
@@ -246,7 +265,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
     "win-arm64": /-win-arm64-setup\.exe$/,
   };
   const $$ = (sel) => document.querySelectorAll(sel);
-  const mb = (bytes) => `${Math.round(bytes / 1e6)} MB`;
+  const mb = (bytes) => `${bytes < 1e7 ? (bytes / 1e6).toFixed(1) : Math.round(bytes / 1e6)} MB`;
   const href = (key) => document.querySelector(`.row[data-asset="${key}"]`).href;
   const size = (key) => document.querySelector(`.size[data-size="${key}"]`).textContent;
   const icon = document.querySelector("#pick svg").outerHTML;
@@ -255,6 +274,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
   async function platform() {
     const ua = navigator.userAgent, data = navigator.userAgentData;
     let os = data?.platform || "";
+    if (/Android/i.test(ua)) os = "Android";
     if (!os) {
       if (/Android/i.test(ua)) os = "Android";
       else if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "iOS";
@@ -285,12 +305,17 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       note.textContent = `Version ${version} for ${arch}. The .deb is for Debian and Ubuntu; the AppImage runs on any distribution.`;
       mark(`deb-${arch}`); mark(`appimage-${arch}`);
       if (arch === "arm64") for (const el of $$('[data-file="deb-x64"], [data-file="appimage-x64"]')) el.dataset.file = el.dataset.file.replace("x64", "arm64");
+    } else if (os === "Android") {
+      const version = document.querySelector("[data-android-version]").textContent;
+      box.innerHTML = `<a class="button primary" href="${href("android")}">${icon}Download for Android</a>`;
+      note.innerHTML = `Version ${version}, ${size("android")}. Needs Android 8 or later. <a href="#on-android">How to install</a>`;
+      mark("android");
     } else if (os === "Windows") {
       box.innerHTML = `<a class="button primary" href="${href(`win-${arch}`)}">${icon}Download for Windows</a>`;
       note.textContent = `Version ${version}, ${size(`win-${arch}`)}. For ${arch === "arm64" ? "Windows 11 on Arm" : "Windows 10 and 11, x64"}.`;
       mark(`win-${arch}`);
     } else {
-      note.textContent = `Version ${version}. Design app runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64).`;
+      note.textContent = `Version ${version}. Design app runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64), and on Android phones.`;
     }
   }
 
@@ -310,6 +335,20 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
     for (const el of $$("[data-version]")) el.textContent = version;
     const date = new Date(release.published_at);
     if (!isNaN(date)) for (const el of $$("[data-date]")) el.textContent = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date);
+  }
+
+  // The Android app has releases of its own (android-v…), never marked
+  // Latest. Like the app's updater, take the newest published one that has
+  // android-latest.json.
+  async function android() {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, { headers: { Accept: "application/vnd.github+json" } });
+    if (!res.ok) return;
+    const release = (await res.json()).find((r) => !r.draft && !r.prerelease && r.assets.some((a) => a.name === "android-latest.json"));
+    const apk = release?.assets.find((a) => /\.apk$/.test(a.name));
+    if (!apk) return;
+    for (const el of $$('[data-asset="android"]')) el.href = apk.browser_download_url;
+    for (const el of $$('[data-size="android"]')) el.textContent = mb(apk.size);
+    for (const el of $$("[data-android-version]")) el.textContent = release.tag_name.replace(/^android-v/, "");
   }
 
   function names() {
@@ -337,7 +376,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
   }
 
   copyButtons();
-  Promise.all([platform(), latest().catch(() => {})]).then(([p]) => { pick(p); names(); });
+  Promise.all([platform(), latest().catch(() => {}), android().catch(() => {})]).then(([p]) => { pick(p); names(); });
 })();
 </script>
 <!-- mark-script -->
