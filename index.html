@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Design app</title>
-<meta name="description" content="Design screens with an AI agent on a live canvas. Download Design app for Mac, Windows, Linux and Android.">
+<title>Knot</title>
+<meta name="description" content="Design screens with an AI agent on a live canvas. Download Knot for Mac, Windows, Linux and Android.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#e9e9e9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Design app">
+<meta property="og:title" content="Knot">
 <meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac, Windows, Linux and Android.">
 <meta property="og:url" content="https://dinesh4720.github.io/design-app-releases/">
 <meta property="og:image" content="https://dinesh4720.github.io/design-app-releases/icon-512.png">
@@ -134,7 +134,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
     <!-- mark -->
     <div class="logo-mark hero-mark"><picture><source media="(prefers-color-scheme: dark)" srcset="hero-dark.png"><img src="hero-light.png" alt="" width="176" height="176"></picture></div>
     <!-- /mark -->
-    <h1>Design app</h1>
+    <h1>Knot</h1>
     <p class="lede">Design screens with an AI agent on a live canvas. Say what you want: the agent studies real products, then builds it in front of you. Change anything yourself, or point the agent at a frame to change it for you.</p>
 
     <div class="actions" id="pick">
@@ -200,24 +200,24 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
     <div>
       <h3>On a Mac</h3>
       <ol class="steps">
-        <li>Open the .dmg and drag Design app into Applications.</li>
-        <li>Open Design app. The first time, macOS says it can’t check the app for malware, because it isn’t notarized by Apple yet. Click Done.</li>
-        <li>Open System Settings, go to Privacy &amp; Security, and click Open Anyway next to the message about Design app.</li>
+        <li>Open the .dmg and drag Knot into Applications.</li>
+        <li>Open Knot. The first time, macOS says it can’t check the app for malware, because it isn’t notarized by Apple yet. Click Done.</li>
+        <li>Open System Settings, go to Privacy &amp; Security, and click Open Anyway next to the message about Knot.</li>
       </ol>
       <p class="aside">If macOS says the app is damaged, run this in Terminal, then open it again:</p>
-      <div class="cmd"><pre><code>xattr -dr com.apple.quarantine "/Applications/Design app.app"</code></pre></div>
+      <div class="cmd"><pre><code>xattr -dr com.apple.quarantine "/Applications/Knot.app"</code></pre></div>
     </div>
     <div>
       <h3>On Windows</h3>
       <ol class="steps">
         <li>Open the installer. If Windows says it protected your PC, that’s because the app isn’t signed yet: click More info, then Run anyway.</li>
-        <li>It installs Design app in your user account, without asking for an administrator, and opens it. After that it’s in the Start menu and on the desktop.</li>
+        <li>It installs Knot in your user account, without asking for an administrator, and opens it. After that it’s in the Start menu and on the desktop.</li>
       </ol>
       <p class="aside">Claude Code needs <a href="https://git-scm.com/downloads/win">Git for Windows</a> to run on Windows.</p>
     </div>
     <div>
       <h3>On Linux</h3>
-      <p>On Debian, Ubuntu and their derivatives, install the .deb. It adds Design app to your app menu and <code>design-app</code> to your PATH.</p>
+      <p>On Debian, Ubuntu and their derivatives, install the .deb. It adds Knot to your app menu and <code>design-app</code> to your PATH.</p>
       <div class="cmd"><pre><code>sudo apt install ./<span data-file="deb-x64">design-app-0.2.3-linux-amd64.deb</span></code></pre></div>
       <p>On any other distribution, make the AppImage executable and run it:</p>
       <div class="cmd"><pre><code>chmod +x <span data-file="appimage-x64">design-app-0.2.3-linux-x86_64.AppImage</span>
@@ -242,7 +242,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       <li>Chrome or Chromium, to take screenshots of your designs.</li>
       <li>To share a design at a link anyone can open: the <a href="https://cli.github.com">GitHub CLI</a>, signed in with <code>gh auth login</code>. Shared designs go on GitHub Pages, in a public repository on your account.</li>
     </ul>
-    <p class="aside">On Windows and Linux, Design app updates itself. On a Mac, it tells you when a new version is out, and you download it here.</p>
+    <p class="aside">On Windows and Linux, Knot updates itself. On a Mac, it tells you when a new version is out, and you download it here.</p>
   </section>
 
   <footer>
@@ -315,7 +315,7 @@ footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-s
       note.textContent = `Version ${version}, ${size(`win-${arch}`)}. For ${arch === "arm64" ? "Windows 11 on Arm" : "Windows 10 and 11, x64"}.`;
       mark(`win-${arch}`);
     } else {
-      note.textContent = `Version ${version}. Design app runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64), and on Android phones.`;
+      note.textContent = `Version ${version}. Knot runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64), and on Android phones.`;
     }
   }
 

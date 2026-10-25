@@ -1,6 +1,6 @@
 # design-app-releases
 
-Releases of Design app: installers and update feeds for macOS and Linux.
+Releases of Knot: installers and update feeds for macOS and Linux.
 
 Download page: https://dinesh4720.github.io/design-app-releases/
 
