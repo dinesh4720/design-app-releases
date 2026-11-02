@@ -2,1352 +2,401 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+// The download page lived here until November 2026: its old links still reach it.
+if (/^#(pick|all|mac|windows|linux|android|installing|on-android|needs)$/.test(location.hash)) location.replace("download.html" + location.hash);
+</script>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Knot</title>
-<meta name="description" content="Design screens with an AI agent on a live canvas. Download Knot for Mac, Windows, Linux and Android.">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#e9e9e9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Design screens with an AI agent on a live canvas. Its agents study real products, then build your screens while you watch.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f6f6f6">
+<link rel="canonical" href="https://dinesh4720.github.io/design-app-releases/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Knot">
-<meta property="og:description" content="Design screens with an AI agent on a live canvas. For Mac, Windows, Linux and Android.">
+<meta property="og:description" content="Design screens with an AI agent on a live canvas. Its agents study real products, then build your screens while you watch.">
 <meta property="og:url" content="https://dinesh4720.github.io/design-app-releases/">
-<meta property="og:image" content="https://dinesh4720.github.io/design-app-releases/icon-512.png">
-<meta name="twitter:card" content="summary">
-<link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta property="og:image" content="https://dinesh4720.github.io/design-app-releases/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400;75..125,600&display=swap">
+<script>
+// Paged unless the visitor asked for less motion, or there's no room: then it's an ordinary page.
+(() => {
+  const q = new URLSearchParams(location.search), m = q.get("motion");
+  let saved = null; try { saved = localStorage.getItem("m-motion"); } catch {}
+  const less = m === "off" || saved === "off" || (m !== "on" && saved !== "on" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const gl = !!document.createElement("canvas").getContext("webgl2"), html = document.documentElement;
+  // A phone plays a film of the world, made from the same scene; a tablet tries it live first.
+  const coarse = matchMedia("(pointer: coarse)").matches, phone = Math.min(screen.width, screen.height) < 600 && coarse;
+  const flat = innerWidth > innerHeight && innerHeight > 0;
+  const reel = !less && !q.has("film") && !flat && (q.has("reel") || (phone && q.get("world") !== "live"));
+  const ok = reel || (!less && gl && q.get("world") !== "off" && innerHeight >= 440);
+  html.classList.add(ok ? "paged" : "flow");
+  if (reel) html.classList.add("reel", "titled");
+  if (q.has("film")) html.classList.add("film");
+  if (phone) matchMedia("(orientation: landscape)").addEventListener("change", () => location.reload());
+  if (ok && !reel && coarse) setTimeout(() => { if (!html.classList.contains("world-on")) location.search = flat ? "?world=off" : "?reel"; }, 5000);
+})();
+</script>
 <style>
-/* Graphite, as in the app: neutral greys, ink for the primary action, blue
-   only for focus and links. Inter at 400/500/600. */
-@font-face { font-family: Inter; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/inter-latin-400-normal.woff2) format("woff2"); }
-@font-face { font-family: Inter; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/inter-latin-500-normal.woff2) format("woff2"); }
-@font-face { font-family: Inter; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/inter-latin-600-normal.woff2) format("woff2"); }
-
+/* Silver. A white studio, liquid chrome, ink type. Six screens: one scroll flies the camera to the next. */
 :root {
-  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --canvas: #e9e9e9; --panel: #ffffff; --field: #f2f2f2; --hover: #f5f5f5;
-  --text: #1a1a1a; --text-2: #3f3f3f; --muted: #6b6b6b; --line: #e0e0e0; --line-strong: #d0d0d0;
-  --primary: #1a1a1a; --primary-hover: #363636; --on-primary: #ffffff;
-  --accent: #0a70e0; --accent-text: #0763c8;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .06);
-  --mark-studio: 0;
+  --ground: #f6f6f6; --text: #0b0b0c; --soft: rgba(11, 11, 12, .66); --line: rgba(11, 11, 12, .14);
+  --gut: clamp(20px, 4.6vw, 88px); --nav: 72px;
+  --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --h1: clamp(42px, min(5.9vw, 11vh), 118px); --h2: clamp(32px, min(3.6vw, 7vh), 72px);
+  --lead: clamp(18px, 1.5vw, 24px); --body: 17px; --small: 15px;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #161616; --panel: #1e1e1e; --field: #2a2a2a; --hover: #242424;
-    --text: #ececec; --text-2: #c8c8c8; --muted: #a1a1a1; --line: #2c2c2c; --line-strong: #3a3a3a;
-    --primary: #ececec; --primary-hover: #ffffff; --on-primary: #161616;
-    --accent: #3b8cf2; --accent-text: #80b5f7;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
-    --mark-studio: 1;
-  }
+html.night { --ground: #0b0b0c; --text: #f6f6f6; --soft: rgba(246, 246, 246, .72); --line: rgba(246, 246, 246, .2); }
+html.paged .nav *, html.paged #download * { transition: color .3s, background-color .3s, border-color .3s; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--text); font: 400 var(--body)/1.45 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p, ol, ul { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+h1, h2, .say { font-weight: 600; letter-spacing: -.028em; line-height: 1.02; }
+h1 { font-size: var(--h1); }
+h2 { font-size: var(--h2); }
+
+/* the world */
+#world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; opacity: 0; }
+html.world-on #world { opacity: 1; }
+html.flow #world { display: none; }
+html.flow .nav { background: rgba(246, 246, 246, .94); }
+
+/* on a phone, films of the world */
+#reel { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--ground) center / cover no-repeat; }
+#reel video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; opacity: 0; }
+html.reel #world { display: none; }
+
+/* nav */
+.nav { position: fixed; left: 0; right: 0; top: 0; z-index: 20; height: var(--nav); display: flex; align-items: center; justify-content: space-between; padding: env(safe-area-inset-top, 0) var(--gut) 0; }
+html.paged .nav::before { content: ""; position: absolute; inset: 0 0 -18px; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, var(--ground) 40%, transparent); opacity: .86; transition: opacity .2s; }
+html.dusk .nav::before { opacity: 0; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 19px; letter-spacing: -.01em; height: 44px; }
+.brand img { width: 30px; height: 30px; filter: grayscale(1); }
+.nav ul { display: flex; align-items: center; gap: clamp(16px, 2.6vw, 36px); font-size: var(--small); }
+.nav li a:not(.btn) { display: inline-flex; align-items: center; height: 44px; color: var(--soft); transition: color .2s; }
+.nav li a:not(.btn):hover, .nav li a[aria-current]:not(.btn) { color: var(--text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: var(--small); font-weight: 600; white-space: nowrap; transition: transform .2s, background .2s; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--text); color: var(--ground); }
+.btn.primary:hover { background: #000; }
+.btn.big { min-height: 56px; padding: 0 30px; font-size: 17px; }
+
+/* where you are: one tick per screen */
+.ticks { position: fixed; right: clamp(4px, 1.2vw, 20px); top: 50%; transform: translateY(-50%); z-index: 20; display: grid; }
+.ticks button { all: unset; cursor: pointer; display: grid; place-items: center end; width: 44px; height: 32px; }
+.ticks button::after { content: ""; display: block; height: 2px; width: 12px; background: var(--text); opacity: .24; transition: width .3s, opacity .3s; }
+.ticks button:hover::after { opacity: .6; }
+.ticks button[aria-current]::after { width: 26px; opacity: 1; }
+.ticks button:focus-visible { outline: 2px solid var(--text); outline-offset: -4px; }
+html.flow .ticks { display: none; }
+
+/* a screen */
+main { position: relative; z-index: 1; }
+.page { box-sizing: border-box; }
+.inner { width: 100%; }
+html.paged, html.paged body { height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+html.paged main { position: fixed; inset: 0; }
+html.paged .page { position: absolute; inset: 0; display: grid; align-items: center; padding: var(--nav) var(--gut) 28px; visibility: hidden; pointer-events: none; }
+html.paged .page.on, html.paged .page.off { visibility: visible; }
+html.paged .page.on { pointer-events: auto; }
+html.paged .r { opacity: 0; }
+html.paged .on .r { animation: rise .8s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(var(--i, 0) * 62ms); }
+html.paged .off .r { opacity: 1; animation: leave .24s cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes leave { to { opacity: 0; transform: translateY(-14px); } }
+html.flow .page { padding: clamp(96px, 16vh, 180px) var(--gut); }
+
+/* the sound control: three bars that move with what you hear */
+.sound { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; height: 44px; min-width: 44px; font-size: var(--small); color: var(--soft); transition: color .2s; }
+.sound:hover, .sound[aria-pressed="true"] { color: var(--text); }
+.sound:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+.bars { display: inline-flex; align-items: center; gap: 2px; height: 14px; }
+.bars i { display: block; width: 2px; height: 14px; border-radius: 1px; background: currentColor; transform: scaleY(var(--b, .28)); transition: transform .08s linear; }
+.sound:not([aria-pressed="true"]) .bars i { opacity: .55; }
+html.flow .sound { display: none; }
+
+/* the wait: three arcs, one for each band to come */
+#loader { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: var(--ground); transition: opacity .35s, visibility 0s .35s; }
+#loader.done { opacity: 0; visibility: hidden; }
+#loader svg { width: 34px; height: 34px; animation: turn 1.1s linear infinite; }
+#loader circle { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 17 7.2; }
+@keyframes turn { to { transform: rotate(360deg); } }
+html.flow #loader { display: none; }
+html.intro .nav, html.intro .ticks { opacity: 0; pointer-events: none; }
+.nav, .ticks { transition: opacity .7s .2s; }
+
+/* landing */
+html.titled .hero { align-items: end; justify-items: center; padding-bottom: clamp(20px, 5vh, 56px); }
+html.titled .hero .inner { max-width: 560px; text-align: center; }
+html.titled .hero h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+html.titled .hero .lede { margin: 0 auto; max-width: 44ch; color: var(--text); opacity: .82; background: radial-gradient(closest-side, var(--ground) 45%, transparent); padding: 8px 28px; }
+html.titled .hero .cta { margin-top: clamp(12px, 2vh, 20px); }
+.hero .inner { max-width: 54vw; }
+.lede { margin-top: clamp(16px, 2.6vh, 28px); font-size: var(--lead); line-height: 1.38; color: var(--soft); max-width: 38ch; text-wrap: balance; }
+.cta { margin-top: clamp(20px, 3.4vh, 36px); }
+.still { display: none; filter: grayscale(1); }
+html.flow .hero { min-height: 100vh; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: center; }
+html.flow .still { display: block; width: min(34vw, 420px); }
+
+/* how it works */
+.page .inner.col { max-width: 58vw; }
+.steps { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: clamp(2px, .8vh, 10px) clamp(16px, 2.4vw, 36px); align-items: baseline; margin-top: clamp(16px, 3.4vh, 36px); }
+.steps li { display: contents; }
+.steps b { font-size: clamp(30px, min(4.6vw, 8.2vh), 88px); font-weight: 600; letter-spacing: -.03em; line-height: 1.08; }
+.steps span { font-size: var(--body); color: var(--soft); }
+html.paged .steps.walk b { color: rgba(11, 11, 12, .5); transition: color .4s; }
+html.paged .steps.walk b.live { color: var(--text); }
+
+/* features */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(20px, 2.8vw, 48px); margin-top: clamp(16px, 3.4vh, 36px); }
+.feat { padding: clamp(10px, 1.7vh, 18px) 0; border-top: 1px solid var(--line); }
+.feat h3 { font-size: clamp(18px, 1.5vw, 24px); font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
+.feat p { color: var(--soft); font-size: var(--body); margin-top: 2px; }
+.feat { transition: border-color .3s; }
+html.paged .feat.live { border-top-color: var(--text); }
+
+/* the app */
+.proof .inner { display: grid; grid-template-columns: minmax(200px, 3fr) minmax(0, 8fr); gap: clamp(24px, 4vw, 72px); align-items: center; }
+.tabs { display: grid; gap: 2px; margin-top: clamp(16px, 3vh, 28px); }
+.tabs button { all: unset; box-sizing: border-box; cursor: pointer; display: block; padding: 11px 0 11px 16px; border-left: 2px solid var(--line); transition: border-color .2s; }
+.tabs b { display: block; font-weight: 600; font-size: 18px; color: var(--soft); transition: color .2s; }
+.tabs span { display: block; font-size: var(--small); color: var(--soft); }
+.tabs button:hover b, .tabs button[aria-selected="true"] b { color: var(--text); }
+.tabs button[aria-selected="true"] { border-left-color: var(--text); }
+.tabs button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.shots { position: relative; width: 100%; max-width: calc((100vh - var(--nav) - 18vh) * 1.6); justify-self: end; aspect-ratio: 16 / 10; }
+.shots img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; border-radius: 10px; box-shadow: 0 0 0 1px rgba(11, 11, 12, .1), 0 30px 80px rgba(11, 11, 12, .18); }
+.shots img.on { opacity: 1; }
+html.paged .shots img, html.paged .shots img.on { opacity: 0; box-shadow: none; } /* the world draws the app; these stay for screen readers */
+
+/* the turn: one statement answers the other */
+.say { font-size: clamp(38px, min(5.4vw, 11vh), 108px); max-width: 12ch; }
+.turn .inner { max-width: 54vw; display: grid; }
+.turn .a, .turn .b { grid-area: 1 / 1; align-self: center; }
+.turn .b p:not(.say) { margin-top: clamp(14px, 2.6vh, 24px); font-size: var(--lead); line-height: 1.38; color: var(--soft); max-width: 40ch; }
+html.paged .turn .a { transition: opacity .28s, transform .28s cubic-bezier(.4, 0, 1, 1); }
+html.paged .turn .b { opacity: 0; transform: translateY(20px); transition: none; }
+html.paged .turn.swap .a { opacity: 0; transform: translateY(-14px); }
+html.paged .turn.swap .b { opacity: 1; transform: none; transition: opacity .5s .3s, transform .8s cubic-bezier(.16, 1, .3, 1) .3s; }
+html.flow .turn .inner { gap: 32px; max-width: none; }
+html.flow .turn .a, html.flow .turn .b { grid-area: auto; }
+
+/* the drop */
+.drop .inner { max-width: 50vw; }
+.drop h2 { font-size: var(--h1); }
+.drop p { margin-top: clamp(14px, 2.6vh, 24px); font-size: var(--lead); line-height: 1.38; color: var(--soft); max-width: 36ch; text-wrap: balance; }
+.others { margin-top: 20px; display: flex; gap: 6px 24px; flex-wrap: wrap; font-size: var(--small); color: var(--soft); }
+.others a { min-height: 32px; display: inline-flex; align-items: center; border-bottom: 1px solid var(--line); transition: color .2s, border-color .2s; }
+.others a:hover { color: var(--text); border-color: var(--text); }
+.drop .legal { position: absolute; left: var(--gut); right: var(--gut); bottom: 16px; margin: 0; max-width: none; font-size: var(--small); line-height: 1.4; color: var(--soft); }
+html.flow .drop .legal { position: static; margin-top: 64px; }
+html.paged .drop .legal { transition: opacity .3s, color .3s; }
+html.night .drop .legal { opacity: 0; }
+
+@media (max-height: 560px) {
+  .tabs span { display: none; }
+  .tabs button { display: flex; align-items: center; min-height: 44px; padding-block: 0; }
 }
+/* phones: one object, one idea, one word at a time */
+.send { display: none; }
+@media (max-aspect-ratio: 23/20), (max-width: 860px) and (min-height: 561px) {
+  :root { --nav: 56px; --gut: 24px; --h1: min(11.4vw, 6.2vh); --h2: min(6.6vw, 3.6vh); --word: min(12.6vw, 6.6vh); --lead: 17px; --body: 17px; }
+  .nav .opt { display: none; }
+  .hero .inner, .page .inner.col, .turn .inner, .drop .inner { max-width: none; }
+  html.flow .hero { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; gap: 0; }
+  .steps b { font-size: var(--word); }
+  .grid { grid-template-columns: 1fr; }
+  .proof .inner { grid-template-columns: 1fr; }
+  .tabs { display: flex; gap: 22px; }
+  .tabs button { padding: 0; min-height: 44px; display: inline-flex; align-items: center; border: 0; }
+  .tabs button[aria-selected="true"] { border: 0; }
+  .tabs b { font-size: 17px; padding-bottom: 3px; border-bottom: 2px solid transparent; }
+  .tabs button[aria-selected="true"] b { border-bottom-color: var(--text); }
+  .tabs span { display: none; }
+  .shots { justify-self: stretch; max-width: none; }
+  .say { font-size: min(11.4vw, 6.2vh); }
+  .btn.big { width: 100%; box-sizing: border-box; justify-content: center; height: 56px; font-size: 17px; }
+  .send { display: inline; } .wide { display: none; }
+  .drop .legal { position: static; margin-top: 18px; font-size: 13px; }
 
-* { box-sizing: border-box; }
-html { background: var(--canvas); color: var(--text); font: 400 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-size-adjust: 100%; }
-body { margin: 0; background: var(--canvas); }
-:where(h1, h2, h3, b, strong) { font-weight: 600; }
-a { color: var(--accent-text); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-code { font: 13px/1.6 var(--mono); }
-:where(p, li) > code { white-space: nowrap; }
+  /* the bar: the mark, where you are, and sound. Nothing else stays on screen. */
+  html.paged .nav { height: var(--nav); padding-inline: var(--gut); }
+  html.paged .nav::before { display: none; }
+  html.paged .nav .dl { display: none; }
+  .sound { position: relative; width: 44px; justify-content: flex-end; gap: 0; }
+  .say-sound { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  html.paged .ticks { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 26px); right: calc(var(--gut) + 44px); left: auto; transform: none; display: flex; gap: 7px; pointer-events: none; }
+  html.paged .ticks span { display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--text); opacity: .2; transition: opacity .3s; }
+  html.paged .ticks span[aria-current] { opacity: 1; }
 
-.page { max-width: 680px; margin: 0 auto; padding: 56px 24px 40px; }
+  html.paged .page { padding: calc(var(--nav) + 14px) var(--gut) 24px; align-items: start; }
+  html.paged .cta { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); margin: 0; }
+  /* a film is made wider than any phone, so each phone sees the middle of it at its own height */
+  html.film { --gut: 66px; }
+  html.film .proof { padding-top: calc(var(--nav) + 34px); }
+  html.titled .hero { padding: 0; }
+  html.titled .hero::after, html.paged .drop::after { content: ""; position: absolute; z-index: -1; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none; background: linear-gradient(to top, var(--ground) 62%, transparent); transition: opacity .3s; }
+  html.paged .drop::after { height: 36%; }
+  html.night .drop::after { opacity: 0; }
+  html.night .drop .others, html.paged.night .drop .legal { visibility: hidden; }
+  html.titled .hero .inner { position: absolute; width: auto; left: var(--gut); right: var(--gut); bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); max-width: none; }
+  html.titled .hero .lede { max-width: 32ch; padding: 0; background: none; font-size: 17px; opacity: 1; }
+  html.titled .hero .cta { bottom: -72px; left: 0; right: 0; margin: 0; }
+  @media (max-height: 700px) { html.titled .hero .lede { display: none; } }
 
-/* The mark: the app's chrome knot, its plasma pulse lapping (drawn live by
-   the mark script at the end; a picture of it at rest until then). */
-.logo-mark { display: block; line-height: 0; }
-.logo-mark img, .logo-mark canvas { display: block; width: 100%; height: 100%; }
-.hero-mark { width: 176px; height: 176px; margin: 0 0 -10px -24px; }
-/* The live mark fills its box and renders at the size the box is laid out at. */
-.hero-mark .logo-mark { width: 100% !important; height: 100% !important; }
+  /* the steps and the features: one at a time, large, changing in time with the object */
+  html.paged .steps, html.paged .grid { display: block; position: relative; margin-top: 16px; min-height: calc(var(--word) * 2.1 + 56px); }
+  html.paged .steps li { display: block; position: absolute; inset: 0 0 auto; opacity: 0; transform: translateY(-10px); transition: opacity .14s, transform .14s; }
+  html.paged .steps li.on { opacity: 1; transform: none; transition: opacity .34s .12s, transform .6s cubic-bezier(.16, 1, .3, 1) .12s; }
+  html.paged .steps .r { opacity: 1; animation: none; }
+  html.paged .steps b, html.paged .steps.walk b { display: block; color: var(--text); font-size: var(--word); }
+  html.paged .steps span { display: block; margin-top: 8px; font-size: 17px; }
+  html.paged .feat, html.paged .on .feat, html.paged .off .feat { position: absolute; inset: 0 0 auto; padding: 0; border: 0; opacity: 0; transform: translateY(-10px); animation: none; transition: opacity .14s, transform .14s; }
+  html.paged .on .feat.live { opacity: 1; transform: none; transition: opacity .34s .12s, transform .6s cubic-bezier(.16, 1, .3, 1) .12s; }
+  html.paged .feat h3 { font-size: var(--word); line-height: 1.04; letter-spacing: -.03em; }
+  html.paged .feat p { margin-top: 8px; font-size: 17px; }
+  html.paged #features::before { content: ""; position: absolute; inset: 0 0 auto; height: 44%; pointer-events: none; background: linear-gradient(to bottom, var(--ground) 72%, transparent); }
+  html.paged #features .inner { position: relative; }
 
-h1 { font-size: 44px; line-height: 1.1; letter-spacing: -.022em; margin: 0 0 14px; }
-.lede { font-size: 18px; line-height: 1.5; color: var(--text-2); max-width: 32em; margin: 0 0 32px; text-wrap: pretty; }
+  /* the app: the window fills what's left, and stands in the sea */
+  html.paged .proof { align-items: stretch; padding-bottom: 72px; }
+  html.paged .proof .inner { height: 100%; grid-template-rows: auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  html.paged .tabs { margin-top: 4px; }
+  html.paged .shots { height: 100%; aspect-ratio: auto; min-height: 0; }
 
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.button { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 8px; font: 500 15px/1 var(--font); text-decoration: none; color: var(--text); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.button:hover { background: var(--hover); }
-.button.primary { background: var(--primary); color: var(--on-primary); box-shadow: none; }
-.button.primary:hover { background: var(--primary-hover); }
-.button svg { width: 16px; height: 16px; flex: none; }
-.note { font-size: 13px; color: var(--muted); margin: 12px 0 0; max-width: 34em; }
-.note a { white-space: nowrap; }
+  /* the turn: the wall above, the words on the white below */
+  html.paged .turn { align-items: end; align-content: end; padding-bottom: 40px; }
+  html.paged .turn::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(to top, var(--ground) 70%, transparent); pointer-events: none; }
+  html.paged .turn .inner { position: relative; }
 
-section { margin-top: 64px; }
-h2 { font-size: 18px; line-height: 1.3; margin: 0 0 14px; }
-h3 { font-size: 15px; line-height: 1.4; margin: 0 0 6px; }
-
-/* Every download, by platform. */
-.panel { background: var(--panel); border-radius: 12px; box-shadow: 0 0 0 1px var(--line), var(--shadow-sm); overflow: hidden; }
-.group { padding: 6px 0 8px; }
-.group + .group { border-top: 1px solid var(--line); }
-.group h3 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 0; padding: 10px 20px 4px; }
-.row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; column-gap: 20px; padding: 9px 20px; color: inherit; text-decoration: none; }
-.row:hover { background: var(--hover); }
-.row:focus-visible { outline-offset: -2px; border-radius: 0; }
-.row .name { font-weight: 500; }
-.row .detail { display: block; font-size: 13px; color: var(--muted); }
-.row .size { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
-.row .get { font-size: 13px; font-weight: 500; height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line-strong); }
-.row:hover .get { background: var(--primary); color: var(--on-primary); box-shadow: none; }
-.tag { font-size: 11px; font-weight: 500; color: var(--text-2); background: var(--field); border-radius: 4px; padding: 2px 6px; margin-left: 8px; vertical-align: 2px; white-space: nowrap; }
-
-/* Installing. */
-.steps { margin: 0 0 8px; padding-left: 22px; }
-.steps li { margin: 0 0 8px; padding-left: 2px; }
-.install > div + div { margin-top: 32px; }
-.install p { margin: 0 0 8px; }
-.cmd { display: flex; align-items: flex-start; margin: 8px 0 16px; background: var(--panel); border-radius: 8px; box-shadow: 0 0 0 1px var(--line); }
-.cmd pre { flex: 1; min-width: 0; margin: 0; padding: 12px 14px; overflow-x: auto; }
-.cmd button { flex: none; margin: 8px 8px 0 0; height: 26px; padding: 0 10px; border: 0; border-radius: 6px; font: 500 12px/1 var(--font); color: var(--text); background: var(--field); cursor: pointer; }
-.cmd button:hover { background: var(--line); }
-.aside { font-size: 13px; color: var(--muted); }
-
-.needs ul { margin: 0; padding-left: 20px; }
-.needs li { margin: 0 0 6px; }
-
-footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line-strong); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; font-size: 13px; color: var(--muted); }
-
-@media (max-width: 600px) {
-  .page { padding: 32px 16px 32px; }
-  .hero-mark { width: 136px; height: 136px; margin: 0 0 -8px -18px; }
-  h1 { font-size: 36px; }
-  .lede { font-size: 17px; }
-  section { margin-top: 48px; }
-  .row { grid-template-columns: 1fr auto; padding: 10px 16px; }
-  .row .size { display: none; }
-  .row .detail .sz::before { content: ", "; }
-  .group h3 { padding-left: 16px; padding-right: 16px; }
-  /* On a phone the button at the top is already this download. */
-  #android .tag { display: none; }
+  /* the end: the words above, the knot between, the one thing to do below */
+  html.paged .drop .others { position: absolute; left: var(--gut); margin: 0; font-size: 15px; }
+  html.paged .drop .others { bottom: calc(env(safe-area-inset-bottom, 0px) + 126px); }
+  html.paged .drop .cta { bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
+  html.paged .drop .legal { position: absolute; left: var(--gut); right: var(--gut); bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); margin: 0; font-size: 14px; line-height: 1.25; color: var(--text); opacity: .86; }
 }
-@media (min-width: 601px) { .row .detail .sz { display: none; } }
 </style>
 </head>
 <body>
-<main class="page">
-  <header>
-    <!-- mark -->
-    <div class="logo-mark hero-mark"><picture><source media="(prefers-color-scheme: dark)" srcset="hero-dark.png"><img src="hero-light.png" alt="" width="176" height="176"></picture></div>
-    <!-- /mark -->
-    <h1>Knot</h1>
-    <p class="lede">Design screens with an AI agent on a live canvas. Say what you want: the agent studies real products, then builds it in front of you. Change anything yourself, or point the agent at a frame to change it for you.</p>
+<canvas id="world" aria-hidden="true"></canvas>
+<div id="loader" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11.5" pathLength="72"/></svg></div>
 
-    <div class="actions" id="pick">
-      <a class="button primary" data-asset="mac" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-mac-arm64.dmg"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Download for Mac</a>
-      <a class="button" href="#windows">Download for Windows</a>
-      <a class="button" href="#linux">Download for Linux</a>
+<header class="nav">
+  <a class="brand" href="#top" data-go="top" aria-label="Knot, back to the start"><img src="assets/hero-light.png" alt="" width="30" height="30"><span>Knot</span></a>
+  <nav aria-label="Sections"><ul>
+    <li class="opt"><a href="#how" data-go="how">How it works</a></li>
+    <li class="opt"><a href="#features" data-go="features">Features</a></li>
+    <li class="opt"><a href="#proof" data-go="proof">The app</a></li>
+    <li><button class="sound" type="button" aria-pressed="false" aria-label="Sound"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="say-sound">Sound</span></button></li>
+    <li class="dl"><a class="btn primary" href="#download" data-go="download">Download</a></li>
+  </ul></nav>
+</header>
+<div class="ticks" role="group" aria-label="Screens"></div>
+
+<main>
+  <section class="page hero on" id="top">
+    <div class="inner">
+      <h1 class="r" id="headline">It reads<br>the real thing<br>before it draws.</h1>
+      <p class="lede r">A design app whose agents study real products, then build your screens while you watch.</p>
+      <div class="cta r"><a class="btn primary big" href="#download" data-go="download" data-send><span class="wide">Get Knot for Mac</span><span class="send">Send the link to my Mac</span></a></div>
     </div>
-    <p class="note" id="pick-note">Version <span data-version>0.2.3</span>. The Mac app needs a Mac with Apple silicon (M1 or later). Windows builds are for x64 and Arm, Linux builds for x64 and arm64. The Android app needs Android 8 or later.</p>
-  </header>
+    <img class="still" src="assets/hero-light.png" alt="The Knot mark, a silver trefoil knot" width="352" height="352">
+  </section>
 
-  <section aria-labelledby="all">
-    <h2 id="all">All downloads</h2>
-    <div class="panel">
-      <div class="group" id="mac">
-        <h3>Mac</h3>
-        <a class="row" data-asset="mac" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-mac-arm64.dmg">
-          <span><span class="name">Apple silicon</span><span class="tag" hidden>This computer</span><span class="detail">Disk image (.dmg)<span class="sz" data-size="mac">143 MB</span></span></span>
-          <span class="size" data-size="mac">143 MB</span><span class="get">Download</span>
-        </a>
-      </div>
-      <div class="group" id="windows">
-        <h3>Windows</h3>
-        <a class="row" data-asset="win-x64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-win-x64-setup.exe">
-          <span><span class="name">Windows 10 and 11, x64</span><span class="tag" hidden>This computer</span><span class="detail">Installer (.exe)<span class="sz" data-size="win-x64">123 MB</span></span></span>
-          <span class="size" data-size="win-x64">123 MB</span><span class="get">Download</span>
-        </a>
-        <a class="row" data-asset="win-arm64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-win-arm64-setup.exe">
-          <span><span class="name">Windows 11, Arm</span><span class="tag" hidden>This computer</span><span class="detail">Installer (.exe)<span class="sz" data-size="win-arm64">116 MB</span></span></span>
-          <span class="size" data-size="win-arm64">116 MB</span><span class="get">Download</span>
-        </a>
-      </div>
-      <div class="group" id="linux">
-        <h3>Linux</h3>
-        <a class="row" data-asset="deb-x64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-linux-amd64.deb">
-          <span><span class="name">Debian and Ubuntu, x64</span><span class="tag" hidden>This computer</span><span class="detail">Package (.deb)<span class="sz" data-size="deb-x64">110 MB</span></span></span>
-          <span class="size" data-size="deb-x64">110 MB</span><span class="get">Download</span>
-        </a>
-        <a class="row" data-asset="deb-arm64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-linux-arm64.deb">
-          <span><span class="name">Debian and Ubuntu, arm64</span><span class="tag" hidden>This computer</span><span class="detail">Package (.deb)<span class="sz" data-size="deb-arm64">105 MB</span></span></span>
-          <span class="size" data-size="deb-arm64">105 MB</span><span class="get">Download</span>
-        </a>
-        <a class="row" data-asset="appimage-x64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-linux-x86_64.AppImage">
-          <span><span class="name">Any distribution, x64</span><span class="tag" hidden>This computer</span><span class="detail">AppImage<span class="sz" data-size="appimage-x64">130 MB</span></span></span>
-          <span class="size" data-size="appimage-x64">130 MB</span><span class="get">Download</span>
-        </a>
-        <a class="row" data-asset="appimage-arm64" href="https://github.com/dinesh4720/design-app-releases/releases/download/v0.2.3/design-app-0.2.3-linux-arm64.AppImage">
-          <span><span class="name">Any distribution, arm64</span><span class="tag" hidden>This computer</span><span class="detail">AppImage<span class="sz" data-size="appimage-arm64">131 MB</span></span></span>
-          <span class="size" data-size="appimage-arm64">131 MB</span><span class="get">Download</span>
-        </a>
-      </div>
-      <div class="group" id="android">
-        <h3>Android</h3>
-        <a class="row" data-asset="android" href="https://github.com/dinesh4720/design-app-releases/releases/download/android-v1.0.0/design-app-1.0.0.apk">
-          <span><span class="name">Android&nbsp;8&nbsp;and&nbsp;later</span><span class="tag" hidden>This phone</span><span class="detail">App (.apk), version <span data-android-version>1.0.0</span><span class="sz" data-size="android">4.2 MB</span></span></span>
-          <span class="size" data-size="android">4.2 MB</span><span class="get">Download</span>
-        </a>
+  <section class="page" id="how">
+    <div class="inner col">
+      <h2 class="r">Six steps, every turn.</h2>
+      <ol class="steps">
+        <li><b class="r">Brief</b><span class="r">Works out what you want.</span></li>
+        <li><b class="r">Research</b><span class="r">Studies real products.</span></li>
+        <li><b class="r">System</b><span class="r">Reads fonts, colours and spacing.</span></li>
+        <li><b class="r">Direction</b><span class="r">Commits to what it will steal.</span></li>
+        <li><b class="r">Build</b><span class="r">Tokens, components, pages.</span></li>
+        <li><b class="r">Review</b><span class="r">A critic reads every turn.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="page" id="features">
+    <div class="inner col">
+      <h2 class="r">What's in the file.</h2>
+      <div class="grid">
+        <article class="feat r"><h3>Live canvas</h3><p>Agents build while you watch.</p></article>
+        <article class="feat r"><h3>Research first</h3><p>Real products, studied and on record.</p></article>
+        <article class="feat r"><h3>Play mode</h3><p>Run any board live, in place.</p></article>
+        <article class="feat r"><h3>Figma both ways</h3><p>Paste in, copy back, nothing lost.</p></article>
+        <article class="feat r"><h3>Libraries</h3><p>Publish once, update everywhere.</p></article>
+        <article class="feat r"><h3>Code workspaces</h3><p>Link a repo, build into it.</p></article>
+        <article class="feat r"><h3>Exports</h3><p>HTML, PDF, PowerPoint, Claude Code.</p></article>
+        <article class="feat r"><h3>Contexts</h3><p>Your company's knowledge, every turn.</p></article>
       </div>
     </div>
   </section>
 
-  <section class="install" aria-labelledby="installing">
-    <h2 id="installing">Installing</h2>
-    <div>
-      <h3>On a Mac</h3>
-      <ol class="steps">
-        <li>Open the .dmg and drag Knot into Applications.</li>
-        <li>Open Knot. The first time, macOS says it can’t check the app for malware, because it isn’t notarized by Apple yet. Click Done.</li>
-        <li>Open System Settings, go to Privacy &amp; Security, and click Open Anyway next to the message about Knot.</li>
-      </ol>
-      <p class="aside">If macOS says the app is damaged, run this in Terminal, then open it again:</p>
-      <div class="cmd"><pre><code>xattr -dr com.apple.quarantine "/Applications/Knot.app"</code></pre></div>
-    </div>
-    <div>
-      <h3>On Windows</h3>
-      <ol class="steps">
-        <li>Open the installer. If Windows says it protected your PC, that’s because the app isn’t signed yet: click More info, then Run anyway.</li>
-        <li>It installs Knot in your user account, without asking for an administrator, and opens it. After that it’s in the Start menu and on the desktop.</li>
-      </ol>
-      <p class="aside">Claude Code needs <a href="https://git-scm.com/downloads/win">Git for Windows</a> to run on Windows.</p>
-    </div>
-    <div>
-      <h3>On Linux</h3>
-      <p>On Debian, Ubuntu and their derivatives, install the .deb. It adds Knot to your app menu and <code>design-app</code> to your PATH.</p>
-      <div class="cmd"><pre><code>sudo apt install ./<span data-file="deb-x64">design-app-0.2.3-linux-amd64.deb</span></code></pre></div>
-      <p>On any other distribution, make the AppImage executable and run it:</p>
-      <div class="cmd"><pre><code>chmod +x <span data-file="appimage-x64">design-app-0.2.3-linux-x86_64.AppImage</span>
-./<span data-file="appimage-x64">design-app-0.2.3-linux-x86_64.AppImage</span></code></pre></div>
-      <p class="aside">On Ubuntu 24.04 and later, the AppImage may need <code>--no-sandbox</code> to start. The .deb doesn’t.</p>
-    </div>
-    <div id="on-android">
-      <h3>On Android</h3>
-      <ol class="steps">
-        <li>Open the downloaded .apk, from the notification or your Downloads.</li>
-        <li>If Android asks, allow your browser to install apps, then go back and tap Install.</li>
-        <li>Play Protect may say “App scan recommended”, because the app isn’t from Google Play. Tap Scan app, then install it.</li>
-      </ol>
-      <p class="aside">After that, the app updates itself: when a new version is out, it asks to update.</p>
+  <section class="page proof" id="proof">
+    <div class="inner">
+      <div class="proof-side">
+        <h2 class="r">The app itself.</h2>
+        <div class="tabs r" role="tablist" aria-label="Screens of the app">
+          <button role="tab" aria-selected="true" data-shot="0"><b>Home</b><span>Your files and libraries.</span></button>
+          <button role="tab" aria-selected="false" data-shot="1"><b>Canvas</b><span>Agents build while you watch.</span></button>
+          <button role="tab" aria-selected="false" data-shot="2"><b>Play</b><span>Run any board live.</span></button>
+        </div>
+      </div>
+      <div class="shots r" id="shots">
+        <img class="on" src="assets/app-home.jpg" alt="Knot's home: a file browser with recent designs" width="2880" height="1800">
+        <img src="assets/app-editor-1.jpg" alt="The editor, with a storyboard an agent drew on the canvas" width="2880" height="1800">
+        <img src="assets/app-editor-2.jpg" alt="A site made in Knot, playing live" width="2880" height="1800">
+      </div>
     </div>
   </section>
 
-  <section class="needs" aria-labelledby="needs">
-    <h2 id="needs">What it needs</h2>
-    <ul>
-      <li><a href="https://claude.com/claude-code">Claude Code</a>, installed and signed in. The agents run on it.</li>
-      <li>Chrome or Chromium, to take screenshots of your designs.</li>
-      <li>To share a design at a link anyone can open: the <a href="https://cli.github.com">GitHub CLI</a>, signed in with <code>gh auth login</code>. Shared designs go on GitHub Pages, in a public repository on your account.</li>
-    </ul>
-    <p class="aside">On Windows and Linux, Knot updates itself. On a Mac, it tells you when a new version is out, and you download it here.</p>
+  <section class="page turn" id="turn">
+    <div class="inner">
+      <div class="a"><p class="say r">Generated screens all look the same.</p></div>
+      <div class="b">
+        <p class="say">Knot's agents are told why.</p>
+        <p>The guide names every tell, and a critic reads each turn against your references.</p>
+      </div>
+    </div>
   </section>
 
-  <footer>
-    <span>Version <span data-version>0.2.3</span>, released <span data-date>21 October 2026</span></span>
-    <a href="https://github.com/dinesh4720/design-app-releases/releases">Release notes and earlier versions</a>
-  </footer>
+  <section class="page drop" id="download">
+    <div class="inner">
+      <h2 class="r">Knot <span data-version>0.2.57</span><br>for Mac.</h2>
+      <p class="r">Apple silicon. The agents run on your Claude Code login.</p>
+      <div class="cta r"><a class="btn primary big" href="download.html" data-send><span class="wide">Download for Mac</span><span class="send">Send the link to my Mac</span></a></div>
+      <div class="others r"><a href="download.html#android">Android companion</a><a href="https://github.com/dinesh4720/design-app-releases/releases" target="_blank" rel="noopener noreferrer">All releases</a></div>
+    </div>
+    <p class="legal">Independent software, not affiliated with Anthropic, Figma or Pen.</p>
+  </section>
 </main>
 
 <script>
-(() => {
-  const REPO = "dinesh4720/design-app-releases";
-  // Which release file each download is, whatever the version.
-  const FILES = {
-    "mac": /-mac-arm64\.dmg$/,
-    "deb-x64": /-linux-amd64\.deb$/,
-    "deb-arm64": /-linux-arm64\.deb$/,
-    "appimage-x64": /-linux-x86_64\.AppImage$/,
-    "appimage-arm64": /-linux-arm64\.AppImage$/,
-    "win-x64": /-win-x64-setup\.exe$/,
-    "win-arm64": /-win-arm64-setup\.exe$/,
-  };
-  const $$ = (sel) => document.querySelectorAll(sel);
-  const mb = (bytes) => `${bytes < 1e7 ? (bytes / 1e6).toFixed(1) : Math.round(bytes / 1e6)} MB`;
-  const href = (key) => document.querySelector(`.row[data-asset="${key}"]`).href;
-  const size = (key) => document.querySelector(`.size[data-size="${key}"]`).textContent;
-  const icon = document.querySelector("#pick svg").outerHTML;
-
-
-  async function platform() {
-    const ua = navigator.userAgent, data = navigator.userAgentData;
-    let os = data?.platform || "";
-    if (/Android/i.test(ua)) os = "Android";
-    if (!os) {
-      if (/Android/i.test(ua)) os = "Android";
-      else if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "iOS";
-      else if (/Mac/.test(ua)) os = "macOS";
-      else if (/Win/.test(ua)) os = "Windows";
-      else if (/Linux|X11/.test(ua)) os = "Linux";
-    }
-    // Windows on Arm says x64 in the user agent; Chrome and Edge tell the
-    // truth when asked.
-    let arm = /aarch64|arm64|armv8/i.test(ua);
-    if ((os === "Linux" || os === "Windows") && !arm && data?.getHighEntropyValues) {
-      try { arm = (await data.getHighEntropyValues(["architecture"])).architecture === "arm"; } catch {}
-    }
-    return { os, arch: arm ? "arm64" : "x64" };
-  }
-
-  // The button at the top is the download for this computer.
-  function pick({ os, arch }) {
-    const box = document.getElementById("pick"), note = document.getElementById("pick-note");
-    const version = document.querySelector("[data-version]").textContent;
-    const mark = (key) => document.querySelector(`.row[data-asset="${key}"] .tag`).hidden = false;
-    if (os === "macOS") {
-      box.innerHTML = `<a class="button primary" href="${href("mac")}">${icon}Download for Mac</a>`;
-      note.textContent = `Version ${version}, ${size("mac")}. Needs a Mac with Apple silicon (M1 or later).`;
-      mark("mac");
-    } else if (os === "Linux") {
-      box.innerHTML = `<a class="button primary" href="${href(`deb-${arch}`)}">${icon}Download .deb</a><a class="button" href="${href(`appimage-${arch}`)}">Download AppImage</a>`;
-      note.textContent = `Version ${version} for ${arch}. The .deb is for Debian and Ubuntu; the AppImage runs on any distribution.`;
-      mark(`deb-${arch}`); mark(`appimage-${arch}`);
-      if (arch === "arm64") for (const el of $$('[data-file="deb-x64"], [data-file="appimage-x64"]')) el.dataset.file = el.dataset.file.replace("x64", "arm64");
-    } else if (os === "Android") {
-      const version = document.querySelector("[data-android-version]").textContent;
-      box.innerHTML = `<a class="button primary" href="${href("android")}">${icon}Download for Android</a>`;
-      note.innerHTML = `Version ${version}, ${size("android")}. Needs Android 8 or later. <a href="#on-android">How to install</a>`;
-      mark("android");
-    } else if (os === "Windows") {
-      box.innerHTML = `<a class="button primary" href="${href(`win-${arch}`)}">${icon}Download for Windows</a>`;
-      note.textContent = `Version ${version}, ${size(`win-${arch}`)}. For ${arch === "arm64" ? "Windows 11 on Arm" : "Windows 10 and 11, x64"}.`;
-      mark(`win-${arch}`);
-    } else {
-      note.textContent = `Version ${version}. Knot runs on Mac (Apple silicon), Windows (x64 and Arm) and Linux (x64 and arm64), and on Android phones.`;
-    }
-  }
-
-  // Point every link at the latest release; the links in the page are the
-  // release it was written for, in case GitHub can't be asked.
-  async function latest() {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
-    if (!res.ok) return;
-    const release = await res.json();
-    for (const [key, test] of Object.entries(FILES)) {
-      const asset = release.assets.find((a) => test.test(a.name));
-      if (!asset) continue;
-      for (const el of $$(`[data-asset="${key}"]`)) el.href = asset.browser_download_url;
-      for (const el of $$(`[data-size="${key}"]`)) el.textContent = mb(asset.size);
-    }
-    const version = release.tag_name.replace(/^v/, "");
-    for (const el of $$("[data-version]")) el.textContent = version;
-    const date = new Date(release.published_at);
-    if (!isNaN(date)) for (const el of $$("[data-date]")) el.textContent = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(date);
-  }
-
-  // The Android app has releases of its own (android-v…), never marked
-  // Latest. Like the app's updater, take the newest published one that has
-  // android-latest.json.
-  async function android() {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, { headers: { Accept: "application/vnd.github+json" } });
-    if (!res.ok) return;
-    const release = (await res.json()).find((r) => !r.draft && !r.prerelease && r.assets.some((a) => a.name === "android-latest.json"));
-    const apk = release?.assets.find((a) => /\.apk$/.test(a.name));
-    if (!apk) return;
-    for (const el of $$('[data-asset="android"]')) el.href = apk.browser_download_url;
-    for (const el of $$('[data-size="android"]')) el.textContent = mb(apk.size);
-    for (const el of $$("[data-android-version]")) el.textContent = release.tag_name.replace(/^android-v/, "");
-  }
-
-  function names() {
-    for (const el of $$("[data-file]")) {
-      const link = document.querySelector(`.row[data-asset="${el.dataset.file}"]`);
-      if (link) el.textContent = decodeURIComponent(link.href.split("/").pop());
-    }
-  }
-
-  function copyButtons() {
-    if (!navigator.clipboard) return;
-    for (const box of $$(".cmd")) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "Copy";
-      button.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(box.querySelector("code").textContent);
-          button.textContent = "Copied";
-        } catch { button.textContent = "Couldn’t copy"; }
-        setTimeout(() => (button.textContent = "Copy"), 1600);
-      });
-      box.append(button);
-    }
-  }
-
-  copyButtons();
-  Promise.all([platform(), latest().catch(() => {}), android().catch(() => {})]).then(([p]) => { pick(p); names(); });
-})();
+window.MOTION = { scroll: "native" };
+(document.documentElement.classList.contains("reel") ? ["sound.js", "film/film.js", "reel.js"] : ["assets/knot-engine.js", "sound.js", "world.js", "scene.js"]).forEach((src) => { const s = document.createElement("script"); s.src = src + "?v=81"; s.async = false; document.body.append(s); });
 </script>
-<!-- mark-script -->
 <script>
-// The mark, live: the app's own WebGL scene (execute-clone/src/app/ui,
-// bundled by tools/download-page-mark.mjs). It replaces the picture once it
-// can draw; with less motion, or without WebGL, the picture stays.
-(() => {
-// Liquid chrome: a small WebGL2 raymarcher that draws the app's mark as a
-// 3D object in polished metal, the way a product shot does (logo.js, through
-// metal-mark.js; the shape and its motion are plasma.js). The metal has no
-// colour of its own; it is the studio it mirrors: a cool white room with a
-// big softbox up and to the left (the one light the brand keeps), a tall
-// strip on the right, two black flags that lay the dark bands down the
-// metal, and a darker floor under a sharp horizon. Chrome mirrors itself
-// too (one bounce), and crevices darken. A dark studio (same lights, black
-// walls) is the dark theme's version.
-//
-// A direction is a shape and its motion, written as GLSL:
-//   float map(vec3 p)     signed distance to the shape (object space, y up,
-//                         camera on +z looking at the origin)
-// with these to use: u_time (s), u_t (0..1 through the loop, 0 = the rest
-// pose), u_px (the mark's size in CSS px, for optical sizes), u_dark, and
-// the helpers in METAL_HEAD. It may #define F0 (the metal's reflectance) and
-// ROUGH (0 mirror .. 1 satin) before the shading, and CAM (camera distance)
-// and FOV (degrees). Something that glows (the plasma) defines EMIT and
-//   vec4 emit(vec3 p, vec3 n, vec3 F)   rgb: linear light added at a surface
-//                                       point (its own glow, and the light a
-//                                       glowing part casts on nearby metal);
-//                                       a: how much of the reflection there
-//                                       it replaces. Also called where the
-//                                       metal mirrors itself (EMIT_MIRROR)
-// and, for a soft glow in the air round it, HALO and
-//   vec4 halo(vec3 ro, vec3 rd, float t)  rgb (linear, to 1) and cover, for
-//                                         a ray (t: where it hits, or -1).
-// Both get points, normals and rays in map()'s space.
-//
-// One WebGL context draws every mark on the page: each frame it renders a
-// mark into the shared canvas and copies it into that mark's own 2D canvas.
-// The lab that tunes it (renders, sheets, icons, timing) is brand/metal.
-
-const METAL_HEAD = `#version 300 es
-precision highp float;
-uniform vec2 u_res;
-uniform float u_time, u_t, u_px, u_dark, u_tile, u_aa, u_rest;
-uniform vec2 u_tilt;
-out vec4 outColor;
-#define TAU 6.28318530718
-#define PI 3.14159265359
-mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
-float smin(float a, float b, float k) { float h = max(k - abs(a - b), 0.) / k; return min(a, b) - h * h * k * .25; }
-float smax(float a, float b, float k) { return -smin(-a, -b, k); }
-float sdSphere(vec3 p, float r) { return length(p) - r; }
-float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xy) - t.x, p.z); return length(q) - t.y; }
-float sdCapsule(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.); return length(pa - ba * h) - r; }
-float sdRoundBox(vec3 p, vec3 b, float r) { vec3 q = abs(p) - b + r; return length(max(q, 0.)) + min(max(q.x, max(q.y, q.z)), 0.) - r; }
-float ease(float x) { x = clamp(x, 0., 1.); return x * x * (3. - 2. * x); }
-float wrapd(float a) { return mod(a + .5, 1.) - .5; }
-
-// The trefoil: a (2,3) torus knot around the z axis, a lobe pointing up.
-// R and r set its size (lobes reach R + r, the middle R - r); h is how far
-// the strands swing in depth (h sin 3t), which sets the air between them at
-// the crossings. trefoilAt(t) is the centre line, t in 0..1 once round,
-// t = 0 at the tip of the top lobe.
-vec3 trefoilAt(float t, float R, float r, float h) {
-  float a = TAU * t, rho = R + r * cos(3. * a), ph = 2. * a + PI * .5;
-  return vec3(rho * cos(ph), rho * sin(ph), h * sin(3. * a));
-}
-// Distance to the centre line: x = distance, y = t (0..1) there. In the
-// plane through the z axis and p, the knot passes at two points (k = 0, 1);
-// the distance to each is measured across the strand's slant (exact for a
-// straight run), so the tube stays round where it runs steeply.
-vec2 trefoil(vec3 p, float R, float r, float h) {
-  float ang = atan(p.y, p.x + 1e-6) - PI * .5;
-  vec2 mp = vec2(length(p.xy), p.z);
-  vec2 best = vec2(1e9, 0.);
-  for (int k = 0; k < 2; k++) {
-    float a = (ang + TAU * float(k)) * .5;
-    float c3 = cos(3. * a), s3 = sin(3. * a), rho = R + r * c3;
-    vec2 q = mp - vec2(rho, h * s3);
-    vec3 T = vec3(-3. * r * s3, 2. * rho, 3. * h * c3);
-    float L = length(T), cb = T.y / L;
-    vec2 u = normalize(T.xz + vec2(1e-6, 0.));
-    float al = dot(q, u), be = dot(q, vec2(-u.y, u.x));
-    float d = sqrt(al * al * cb * cb + be * be);
-    float t = (a + al * length(T.xz) / (L * L)) / TAU;
-    t -= floor(t);
-    float pick = step(d, best.x);
-    best = mix(best, vec2(d, t), pick);
-  }
-  return vec2(best.x, clamp(best.y, 0., 1.));
-}
-// The knot as the logo draws it: the classic trefoil (sin t + 2 sin 2t,
-// 2 cos 2t - cos t), depth -H sin 3t. Lobes reach 3S from the centre, the
-// inner turns 1S. knotAt(u) is the centre line, u in 0..1 once round, u = 0
-// at the tip of the top lobe; knot(p) is x = distance to it, y = u there.
-// Solved like trefoil(): the two points where the curve crosses p's
-// meridian (Newton on the angle, which always turns the same way), then the
-// distance across the strand's slant.
-vec3 knotAt(float u, float S, float H) {
-  float t = TAU * u + PI;
-  return vec3(S * (sin(t) + 2. * sin(2. * t)), S * (2. * cos(2. * t) - cos(t)), -H * sin(3. * t));
-}
-vec2 knot(vec3 p, float S, float H) {
-  float target = atan(p.y, p.x + 1e-6);
-  vec2 mp = vec2(length(p.xy), p.z);
-  vec2 best = vec2(1e9, 0.);
-  for (int k = 0; k < 2; k++) {
-    float t = (PI * .5 - target) * .5 + PI * float(k);
-    for (int i = 0; i < 3; i++) {
-      float c3 = cos(3. * t), s3 = sin(3. * t);
-      float e = mod(-PI * .5 - 2. * t + atan(s3, c3 - 2.) - target + PI, TAU) - PI;
-      t -= e / (-2. + 3. * (1. - 2. * c3) / (5. - 4. * c3));
-    }
-    float s1 = sin(t), c1 = cos(t), s2 = sin(2. * t), c2 = cos(2. * t);
-    vec2 P = S * vec2(s1 + 2. * s2, 2. * c2 - c1);
-    vec2 D = S * vec2(c1 + 4. * c2, s1 - 4. * s2);
-    float rho = length(P);
-    vec2 er = P / rho;
-    vec3 T = vec3(dot(D, er), dot(D, vec2(-er.y, er.x)), -3. * H * cos(3. * t));
-    vec2 q = mp - vec2(rho, -H * sin(3. * t));
-    float L = length(T), cb = T.y / L;
-    vec2 w = normalize(T.xz + vec2(1e-6, 0.));
-    float al = dot(q, w), be = dot(q, vec2(-w.y, w.x));
-    float d = sqrt(al * al * cb * cb + be * be);
-    float u = (t + al * length(T.xz) / (L * L)) / TAU - .5;
-    u -= floor(u);
-    float pick = step(d, best.x);
-    best = mix(best, vec2(d, u), pick);
-  }
-  return vec2(best.x, clamp(best.y, 0., 1.));
-}
-vec3 trefoilAt(float t, float R, float r) { return trefoilAt(t, R, r, r); }
-vec2 trefoil(vec3 p, float R, float r) { return trefoil(p, R, r, r); }
-`;
-
-const METAL_SHADE = `
-#ifndef F0
-#define F0 vec3(.93, .935, .945)
-#endif
-#ifndef ROUGH
-#define ROUGH 0.
-#endif
-#ifndef CAM
-#define CAM 7.
-#endif
-#ifndef FOV
-#define FOV 30.
-#endif
-#ifndef DISP
-#define DISP .5
-#endif
-// How strongly a glow shows where the metal mirrors it (1 = a perfect
-// mirror, which floods a knot with its own light).
-#ifndef EMIT_MIRROR
-#define EMIT_MIRROR 1.
-#endif
-
-float box(float az, float el, vec4 r, float s) {
-  vec2 d = abs(vec2(mod(az - r.x + PI, TAU) - PI, el - r.y)) - r.zw;
-  return 1. - smoothstep(-s, s, max(d.x, d.y));
-}
-// The studio, by direction. Linear light; the lights go past 1.
-vec3 studio(vec3 d, float blur) {
-  float az = atan(d.x, d.z), el = asin(clamp(d.y, -1., 1.));
-  float s = .025 + blur;
-  float up = smoothstep(-s, s, el + .04);
-  vec3 wallL = mix(vec3(.62, .645, .68), vec3(.93, .945, .97), smoothstep(-.05, 1.1, el));
-  vec3 floorL = mix(vec3(.30, .305, .315), vec3(.12, .125, .13), smoothstep(0., -1.2, el));
-  vec3 wallD = mix(vec3(.07, .072, .08), vec3(.2, .205, .22), smoothstep(-.05, 1.1, el));
-  vec3 floorD = vec3(.022, .022, .025);
-  vec3 c = mix(mix(floorL, wallL, up), mix(floorD, wallD, up), u_dark);
-  // Black flags: the dark bands chrome is read by.
-  c *= 1. - .92 * box(az, el, vec4(.62, .15, .07, 1.3), s);
-  c *= 1. - .85 * box(az, el, vec4(-1.25, .1, .16, 1.3), s * 1.5);
-  c *= 1. - .75 * box(az, el, vec4(2.75, .25, .22, 1.1), s * 2.);
-  // The key: a big softbox up and to the left, in front of the object.
-  c += 2.6 * box(az, el, vec4(-.5, .62, .42, .26), .06 + s * 2.) * vec3(1., .99, .97);
-  // A tall strip on the right and a thin one behind for the rims.
-  c += 2.2 * box(az, el, vec4(1.05, .12, .07, .9), .02 + s) * vec3(.97, .99, 1.);
-  c += 1.6 * box(az, el, vec4(-2.35, .2, .05, .8), .02 + s);
-  c += 1.2 * box(az, el, vec4(2.2, .5, .1, .5), .03 + s);
-  // A low bounce card, so the undersides aren't dead.
-  c += .35 * box(az, el, vec4(0., -.55, 1.2, .18), .2 + s) * (1. - u_dark * .6);
-  return c;
-}
-#ifndef TILE_SCALE
-#define TILE_SCALE .64
-#endif
-// World (camera) space to the direction's own space: the pointer's tilt,
-// then the tile's scale. Directions with light of their own (EMIT, HALO)
-// get their points, normals and rays in this space.
-vec3 dirToMap(vec3 d) {
-  d.xz *= rot(u_tilt.x * .45);
-  d.yz *= rot(-u_tilt.y * .35);
-  return d;
-}
-vec3 toMap(vec3 p) { return dirToMap(p) / mix(1., TILE_SCALE, u_tile); }
-float sceneMap(vec3 p) {
-  return map(toMap(p)) * mix(1., TILE_SCALE, u_tile);
-}
-vec3 normal(vec3 p, float e) {
-  vec2 k = vec2(1, -1);
-  return normalize(k.xyy * sceneMap(p + k.xyy * e) + k.yyx * sceneMap(p + k.yyx * e) + k.yxy * sceneMap(p + k.yxy * e) + k.xxx * sceneMap(p + k.xxx * e));
-}
-float march(vec3 ro, vec3 rd, float far, float px, int steps) {
-  float t = 0.;
-  for (int i = 0; i < 160; i++) {
-    if (i >= steps) break;
-    float d = sceneMap(ro + rd * t);
-    if (d < px * max(t, 1.)) return t;
-    t += d * .8;
-    if (t > far) break;
-  }
-  return -1.;
-}
-float occlusion(vec3 p, vec3 n) {
-  float o = 0., w = 1.;
-  for (int i = 1; i <= 5; i++) {
-    float h = .03 + .09 * float(i);
-    o += (h - sceneMap(p + n * h)) * w;
-    w *= .7;
-  }
-  return clamp(1. - 1.6 * o, 0., 1.);
-}
-vec3 mirror(vec3 r, vec3 n, float blur) {
-  vec3 c = studio(r, blur);
-  float k = DISP * .045 * (1. - abs(dot(r, n)));
-  return vec3(studio(normalize(r + n * k), blur).r, c.g, studio(normalize(r - n * k), blur).b);
-}
-vec3 aces(vec3 x) { return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
-
-// The app-icon tile behind the mark: a rounded square (macOS's 22.5%
-// corner), lit from the top left, the mark standing just in front of it and
-// casting a soft shadow down and to the right.
-vec4 tile(vec2 uv, vec3 ro, vec3 rd) {
-  vec2 q = abs(uv) - vec2(.5 - .225);
-  float d = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - .225;
-  float a = 1. - smoothstep(-.0025, .0025, d);
-  // Display colours (not tone mapped): near white to a cool grey, or graphite.
-  vec3 top = mix(vec3(.976, .98, .984), vec3(.215, .222, .238), u_dark);
-  vec3 bot = mix(vec3(.85, .862, .878), vec3(.078, .082, .09), u_dark);
-  vec3 c = mix(bot, top, smoothstep(-.55, .5, uv.y - uv.x * .25));
-  c += (1. - u_dark * .5) * .05 * exp(-dot(uv - vec2(-.3, .32), uv - vec2(-.3, .32)) * 6.);
-  float z = -.75 * TILE_SCALE, t = (z - ro.z) / rd.z;
-  vec3 p = ro + rd * t, l = normalize(vec3(-.45, .7, 1.));
-  float sh = 1., h = .03;
-  for (int i = 0; i < 32; i++) {
-    float dd = sceneMap(p + l * h);
-    sh = min(sh, 9. * dd / h);
-    h += clamp(dd, .02, .25);
-    if (h > 3.) break;
-  }
-  c *= mix(mix(.72, .55, u_dark), 1., smoothstep(0., 1., clamp(sh, 0., 1.)));
-  // A hairline of light along the top edge, a darker one along the bottom.
-  float edge = 1. - smoothstep(0., .01, abs(d + .007));
-  c += edge * mix(.1, .06, u_dark) * smoothstep(-.2, .4, uv.y);
-  c -= edge * .05 * smoothstep(.1, -.4, uv.y);
-  return vec4(c, a);
-}
-
-void main() {
-  vec2 res = u_res;
-  float n = u_aa;
-  vec4 acc = vec4(0);
-  float fov = tan(radians(FOV) * .5);
-  vec3 ro = vec3(0, 0, CAM);
-  float px = 2. * fov / res.y;
-  int steps = res.y < 80. ? 70 : 110;
-  for (float j = 0.; j < 3.; j++) {
-    if (j >= n) break;
-    for (float i = 0.; i < 3.; i++) {
-      if (i >= n) break;
-      vec2 off = (vec2(i, j) + .5) / n - .5;
-      vec2 uv = (gl_FragCoord.xy + off - res * .5) / res.y;
-      vec3 rd = normalize(vec3(uv * 2. * fov, -1.));
-      vec4 bg = u_tile > .5 ? tile(uv * 1.0, ro, rd) : vec4(0);
-      float t = march(ro, rd, CAM + 4., px * .5, steps);
-#ifdef HALO
-      // Light in the air round a glowing part: rgb (linear, up to 1) and how
-      // much it covers.
-      vec4 h = halo(toMap(ro), dirToMap(rd), t);
-      // Round, and gone before the frame's edge, so a glow never shows the
-      // canvas's square.
-      h.a *= smoothstep(.5, .36, length(uv * vec2(res.y / res.x, 1.)));
-#else
-      vec4 h = vec4(0);
-#endif
-      if (t < 0.) {
-        vec4 b = vec4(pow(max(bg.rgb, 0.), vec3(2.2)) * bg.a, bg.a);
-        acc += vec4(h.rgb * h.a, h.a) + b * (1. - h.a);
-        continue;
-      }
-      vec3 p = ro + rd * t;
-      vec3 nn = normal(p, max(px * t * .5, .0008));
-      vec3 r = reflect(rd, nn);
-      float ndv = clamp(dot(nn, -rd), 0., 1.);
-      vec3 F = F0 + (1. - F0) * pow(1. - ndv, 5.);
-      float blur = ROUGH * .35;
-      // One bounce: the metal mirrors itself.
-      vec3 col;
-      float t2 = march(p + nn * .01, r, 5., px * 2., 48);
-      if (t2 > 0.) {
-        vec3 p2 = p + nn * .01 + r * t2;
-        vec3 n2 = normal(p2, .002);
-        vec3 r2 = reflect(r, n2);
-        col = studio(r2, blur + .05) * F0 * .9 * mix(.5, 1., occlusion(p2, n2));
-#ifdef EMIT
-        // A glowing part seen in the metal next to it.
-        vec4 e2 = emit(toMap(p2), dirToMap(n2), F0) * EMIT_MIRROR;
-        col = col * (1. - e2.a) + e2.rgb;
-#endif
-      } else {
-        col = mirror(r, nn, blur);
-      }
-      col *= F * mix(.35, 1., occlusion(p, nn));
-#ifdef EMIT
-      // Light of the direction's own: what glows on this surface (replacing
-      // that much of the reflection), and what a glowing part nearby casts
-      // on it.
-      vec4 e1 = emit(toMap(p), dirToMap(nn), F);
-      col = col * (1. - e1.a) + e1.rgb;
-#endif
-      col += h.rgb * h.a;
-      acc += vec4(aces(col * 1.08), 1.);
-    }
-  }
-  acc /= n * n;
-  // Display gamma; premultiplied for the page.
-  vec3 c = pow(max(acc.rgb, 0.) / max(acc.a, 1e-4), vec3(1. / 2.2)) * acc.a;
-  // A little dither, so faint glows don't band into rings at 8 bits.
-  float dn = (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))) - .5) / 255.;
-  outColor = clamp(vec4(c + dn * step(.002, acc.a), acc.a + dn * step(.002, acc.a) * (1. - acc.a)), 0., 1.);
-}
-`;
-
-const METAL_VERT = `#version 300 es
-in vec2 a; void main() { gl_Position = vec4(a, 0, 1); }`;
-
-// The shared renderer.
-let metalShared = null;
-function metalEngine() {
-  if (metalShared) return metalShared;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 256;
-  const gl = canvas.getContext("webgl2", { premultipliedAlpha: true, alpha: true, antialias: false, preserveDrawingBuffer: false });
-  if (!gl) return (metalShared = { ok: false });
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const programs = new Map();
-  const compile = (direction) => {
-    const key = direction.key;
-    if (programs.has(key)) return programs.get(key);
-    const make = (type, src) => {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(`${key}: ${gl.getShaderInfoLog(s)}`);
-      return s;
-    };
-    const prog = gl.createProgram();
-    gl.attachShader(prog, make(gl.VERTEX_SHADER, METAL_VERT));
-    gl.attachShader(prog, make(gl.FRAGMENT_SHADER, METAL_HEAD + direction.glsl + METAL_SHADE));
-    gl.bindAttribLocation(prog, 0, "a");
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(`${key}: ${gl.getProgramInfoLog(prog)}`);
-    const u = {};
-    for (const name of ["u_res", "u_time", "u_t", "u_px", "u_dark", "u_tile", "u_aa", "u_rest", "u_tilt"]) u[name] = gl.getUniformLocation(prog, name);
-    const entry = { prog, u };
-    programs.set(key, entry);
-    return entry;
-  };
-  // Draw one frame of a direction; the pixels are in the canvas's bottom-left
-  // w x h until the task ends.
-  const draw = (direction, { w, h, time = 0, loop = direction.loop || 4, px = h, dark = 0, tile = 0, aa, rest = 0, tilt = [0, 0] }) => {
-    if (canvas.width < w || canvas.height < h) {
-      canvas.width = Math.max(canvas.width, w);
-      canvas.height = Math.max(canvas.height, h);
-    }
-    const { prog, u } = compile(direction);
-    gl.useProgram(prog);
-    gl.viewport(0, 0, w, h);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform2f(u.u_res, w, h);
-    gl.uniform1f(u.u_time, time);
-    gl.uniform1f(u.u_t, (((time / loop) % 1) + 1) % 1);
-    gl.uniform1f(u.u_px, px);
-    gl.uniform1f(u.u_dark, dark);
-    gl.uniform1f(u.u_tile, tile);
-    gl.uniform1f(u.u_aa, aa ?? (h <= 96 ? 3 : 2));
-    gl.uniform1f(u.u_rest, rest);
-    gl.uniform2f(u.u_tilt, tilt[0], tilt[1]);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-  };
-  // Draw and copy into a 2D context at (x, y).
-  const paint = (ctx, direction, opts, x = 0, y = 0) => {
-    draw(direction, opts);
-    ctx.drawImage(canvas, 0, canvas.height - opts.h, opts.w, opts.h, x, y, opts.w, opts.h);
-  };
-  return (metalShared = { ok: true, gl, canvas, compile, draw, paint });
-}
-
-// The app's mark (logo.js), drawn by metal.js: the plasma knot, and the two
-// ways it plays, KNOT (the loop every loader and logo runs) and IGNITION
-// (the onboarding's finale).
-//
-// The plasma knot: the trefoil in polished chrome, still and face-on, with
-// a pulse of plasma riding inside the tube, white-hot at its core, red at
-// its leading edge and blue in its trail (today's pulse colours, app.css
-// --mark-lead / --mark-trail). It lights the chrome round it and the strands
-// it passes under, throws a bloom into the air, and shows, faintly, in the
-// strands that mirror it. Run fast enough, its comet tail wraps the whole
-// knot into one ring of light.
-//
-// A direction gives a GLSL `void timeline(float t)` (t in seconds) that sets
-// the pulse's state: gU (where it is, 0..1 round the knot, 0 = the top
-// lobe's tip), gV (how fast, 0..1, which draws the comet out), gE (how much
-// light it throws), gTrail (the tail's length, arc units), gFlare, gRip and
-// gRipA (the flare and ripple as it seats), gRing (0..1, the tail wrapped
-// into a ring), gWhite (0..1, white-hot) and gBloom (the bloom's reach).
-
-const PL_TAU = 2 * Math.PI;
-const PL_S = .42;
-// The knot's length (arc units), so the pulse is sized in the tube's units.
-const PL_LEN = (() => {
-  let len = 0;
-  for (let i = 0; i < 4096; i++) {
-    const c3 = Math.cos(3 * (PL_TAU * (i + .5) / 4096 + Math.PI));
-    len += PL_TAU * Math.sqrt(PL_S * PL_S * (17 + 8 * c3) + 9 * .4 * .4 * c3 * c3) / 4096;
-  }
-  return len;
-})();
-// Straight: a long lens, so the outline has no perspective (near strands
-// drawn bigger made the knot look turned) and is mirror-symmetric, framed
-// as the default camera frames it (half-height 1.876 at the knot).
-const PL_CAM = 28;
-const PL_FOV = 2 * Math.atan(7 * Math.tan(Math.PI / 12) / PL_CAM) * 180 / Math.PI;
-// Centred on its bounding box: the top lobe reaches 3S, the lower two
-// 2.0625S down (the curve's lowest point, where cos t = 1/8).
-const PL_LIFT = (3 - 2.0625) / 2 * PL_S;
-const f5 = (x) => x.toFixed(5);
-
-const plasmaKnot = (timeline) => `
-#define KLEN ${f5(PL_LEN)}
-#define KS ${f5(PL_S)}
-#define CAM ${f5(PL_CAM)}
-#define FOV ${f5(PL_FOV)}
-// Polished, with the studio's band edges softened a touch so the chrome
-// reads liquid rather than wire-drawn; satin and no fringes when small, so
-// 16 px isn't a scatter of glints. In the dark studio a small tube is
-// blurred further, into a soft silver form; small on a light page, darker
-// steel keeps the shape and its holes.
-#define ROUGH mix(mix(1.2, .1, smoothstep(14., 36., u_px)), mix(mix(2.4, .8, smoothstep(14., 30., u_px)), .1, smoothstep(30., 64., u_px)), u_dark)
-#define DISP (.5 * smoothstep(20., 48., u_px))
-#define F0 (vec3(.93, .935, .945) * (1. - .6 * (1. - smoothstep(20., 44., u_px)) * (1. - u_dark)))
-#define TILE_SCALE mix(.86, .75, smoothstep(40., 160., u_px))
-#define EMIT
-#define HALO
-// The strands round the pulse mirror its glow: a third of it, so the knot
-// is lit by the pulse rather than filled with it.
-#define EMIT_MIRROR .32
-
-bool poseReady = false;
-float KH, zoom, small;
-float gU, gV, gE, gTrail, gFlare, gRip, gRipA, gRing, gWhite, gBloom;
-vec3 cRed, cBlue;
-// The pulse's size: small, it is bigger, to read at 16 px.
-float pulseR() { return mix(.17, .3, small); }
-${timeline}
-// The moment, worked out on a pixel's first call.
-void pose() {
-  small = 1. - smoothstep(18., 96., u_px);
-  zoom = mix(1., 1.04, small);
-  // The strands' swing in depth: shallow when large (smooth slivers at the
-  // crossings), deeper when small to keep the holes open.
-  KH = mix(.5, .4, smoothstep(20., 48., u_px));
-  gRing = 0.; gWhite = 0.; gBloom = 1.; gFlare = 0.; gRip = 0.; gRipA = 0.;
-  timeline(u_t * LOOP);
-  // Today's pulse colours (app.css --mark-lead / --mark-trail), as light.
-  cRed = mix(vec3(.78, .034, .05), vec3(1., .07, .107), u_dark);
-  cBlue = mix(vec3(.005, .32, .69), vec3(.03, .66, 1.), u_dark);
-}
-vec3 toKnot(vec3 p) { return p / zoom + vec3(0, ${f5(PL_LIFT)}, 0); }
-// Distance to the centre line and u there, tightened: knot() is off by up
-// to ~.03 on the lobes' sides, which chrome shows as a tube that isn't round,
-// so two Newton steps on the true closest point from its answer.
-vec2 knotFine(vec3 p) {
-  float t = TAU * knot(p, KS, KH).y + PI;
-  for (int i = 0; i < 2; i++) {
-    float s1 = sin(t), c1 = cos(t), s2 = sin(2. * t), c2 = cos(2. * t), s3 = sin(3. * t), c3 = cos(3. * t);
-    vec3 r = vec3(KS * (s1 + 2. * s2), KS * (2. * c2 - c1), -KH * s3) - p;
-    vec3 d1 = vec3(KS * (c1 + 4. * c2), KS * (s1 - 4. * s2), -3. * KH * c3);
-    vec3 d2 = vec3(-KS * (s1 + 8. * s2), KS * (c1 - 8. * c2), 9. * KH * s3);
-    t += clamp(-dot(r, d1) / max(dot(d1, d1) + dot(r, d2), .5), -.3, .3);
-  }
-  vec3 c = vec3(KS * (sin(t) + 2. * sin(2. * t)), KS * (2. * cos(2. * t) - cos(t)), -KH * sin(3. * t));
-  return vec2(length(p - c), fract((t - PI) / TAU));
-}
-// The swelling the pulse makes (s is arc length from its centre, + ahead).
-// It smooths out as the tail wraps into a ring.
-float swell(float s) {
-  float r = pulseR() * 1.1;
-  float w = s >= 0. ? r : r * (1. + 1.2 * gV);
-  return mix(.04, .065, max(gV, small * .6)) * (1. + .45 * gFlare) * exp(-s * s / (w * w)) * (1. - gRing);
-}
-float map(vec3 p) {
-  if (!poseReady) { pose(); poseReady = true; }
-  // Far off, a sphere round it is cheaper and safe.
-  vec3 q = toKnot(p);
-  float bound = length(q) - 1.85;
-  if (bound > .5) return bound * zoom;
-  vec2 k = knotFine(q);
-  float s = wrapd(k.y - gU) * KLEN;
-  float tube = mix(.19, .195, small);
-  return (k.x - tube - swell(s)) * .85 * zoom;
-}
-// A point light that dies out within about r (plasma lights only the metal
-// right round it), on a surface facing it.
-vec3 lamp(vec3 q, vec3 n, vec3 at, vec3 c, float r) {
-  vec3 d = at - q;
-  float dd = dot(d, d);
-  return c * max(dot(n, d) * inversesqrt(dd + 1e-6), 0.) * exp(-dd / (r * r));
-}
-vec4 emit(vec3 pm, vec3 n, vec3 F) {
-  if (!poseReady) { pose(); poseReady = true; }
-  vec3 q = toKnot(pm);
-  float s = wrapd(knot(q, KS, KH).y - gU) * KLEN;
-  // How far behind the pulse this is, round the knot (the tail of a fast
-  // pulse wraps all the way round).
-  float sb = s <= 0. ? -s : KLEN - s;
-  float rc = pulseR();
-  vec3 white = vec3(1., .94, .92);
-  // The plasma: a white-hot core, the red edge it leads with, the blue it
-  // leaves behind as a comet's tail, fading off exponentially. Once the
-  // tail is a ring there is no head to see: the core and edge fade into it.
-  float head = 1. - .85 * gRing;
-  float core = exp(-s * s / (rc * rc * .35)) * head;
-  float lead = exp(-pow(max(s, 0.) / (rc * 1.15), 2.)) * smoothstep(-.03, .09, s) * head;
-  float trail = exp(-sb / gTrail) * mix(1., smoothstep(.03, -.09, s), exp(-s * s / .04)) * (1. - .25 * gV * (1. - gRing));
-  // The tube carries its light on: a faint glow inside the metal ahead (red)
-  // and behind (blue), as in a light pipe.
-  float pipeA = exp(-max(s, 0.) / .22) * smoothstep(-.02, .1, s) * head;
-  float pipeB = exp(-sb / (.26 + .2 * gV)) * smoothstep(-.02, .1, sb);
-  // The ripple after it seats: red runs on ahead, blue runs back.
-  float ripR = exp(-pow((s - gRip) / .13, 2.)) * gRipA;
-  float ripB = exp(-pow((s + gRip) / .13, 2.)) * gRipA;
-  float hot = gE * mix(1., 1.25, small);
-  vec3 red = mix(cRed, white, gWhite * .6), blue = mix(cBlue, white, gWhite);
-  vec3 glow = core * white * 3.2 * hot
-    + (lead * 2.6 + pipeA * .3) * red * hot + ripR * cRed * 2.6
-    + (trail * 2.6 + pipeB * .3) * blue * hot + ripB * cBlue * 2.6;
-  // White-hot, the metal's form still shows through the light.
-  float cover = clamp(core + .85 * max(lead, trail) + .3 * max(pipeA, pipeB) + .6 * max(ripR, ripB), 0., mix(.95, .62, gWhite));
-  // Its light on the metal round it: white from the core, red ahead, blue
-  // behind; strong enough that a strand crossing over it lights up from
-  // underneath as it passes. A ring lights everything near it.
-  vec3 c = knotAt(gU, KS, KH);
-  vec3 ahead = knotAt(gU + .03, KS, KH), behind = knotAt(gU - .03 - .03 * gV, KS, KH);
-  vec3 light = (lamp(q, n, c, white * 1.6, .5) + lamp(q, n, ahead, red * 1.4, .45)) * head
-    + lamp(q, n, behind, blue * 1.2, .45 + .08 * gV)
-    + blue * .35 * gRing * (.6 + .4 * max(n.z, 0.));
-  return vec4(glow + light * (F * .6 + .4) * gE, cover);
-}
-// The light it throws into the air: a hot bloom round the core, a red
-// glow ahead, blue along the comet's tail, a wide faint wash, and once the
-// tail is a ring, a glow along the whole knot; in both studios (a neon glow
-// on a white wall is still a glow).
-float bloom(vec3 o, vec3 d, vec3 at, float r, float t) {
-  float tc = dot(at - o, d);
-  vec3 cl = o + d * tc - at;
-  float g = exp(-dot(cl, cl) / (r * r));
-  // Behind a strand in front of it, mostly hidden.
-  if (t > 0. && t / (mix(1., TILE_SCALE, u_tile) * zoom) < tc - .22) g *= .3;
-  return g;
-}
-vec4 halo(vec3 ro, vec3 rd, float t) {
-  if (!poseReady) { pose(); poseReady = true; }
-  vec3 o = toKnot(ro);
-  float k = mix(1., 1.35, small) * gBloom;
-  float du = .03 / KLEN * 9.;
-  float head = 1. - .85 * gRing;
-  vec3 c = knotAt(gU, KS, KH);
-  float wc = bloom(o, rd, c, .26 * k, t) * 1.1 * head;
-  float wr = bloom(o, rd, knotAt(gU + du, KS, KH), .3 * k, t) * .9 * head;
-  float wb = 0.;
-  for (int i = 1; i <= 3; i++) {
-    float f = float(i);
-    wb += bloom(o, rd, knotAt(gU - du * f * (.8 + .7 * gV), KS, KH), .26 * k, t) * exp(-f * .8) * (.45 + .35 * gV) * head;
-  }
-  float wide = bloom(o, rd, c, .55 * k, t) * .2;
-  // The ring's glow: how far the ray passes from the knot where it crosses
-  // the knot's plane.
-  vec3 pz = o + rd * (-o.z / rd.z);
-  float dr = knot(pz, KS, KH).x;
-  float wring = exp(-dr * dr / (.09 * k * k)) * gRing * 1.2;
-  vec3 white = vec3(1., .94, .92);
-  vec3 red = mix(cRed, white, gWhite * .6), blue = mix(cBlue, white, gWhite);
-  vec3 sum = wc * white + (wr + wide * .5) * red + (wb + wide * .5 + wring) * blue;
-  float wsum = wc + wr + wb + wide + wring;
-  float w = wsum * gE;
-  // How much it covers: more in the dark studio, where light is all there is.
-  // A soft curve, so a strong glow still fades out from the light rather
-  // than filling a flat disc.
-  float a = w / (1. + w) * mix(.6, .9, u_dark);
-  // Over the metal, the glow is the thin air in front of it: much less
-  // of it, so the chrome under it stays chrome (until it whites out).
-  if (t > 0.) a *= mix(.35, 1., gWhite * gRing);
-  return vec4(sum / max(wsum, 1e-4), a);
-}
-`;
-
-// KNOT, the mark's loop. The trefoil lies still,
-// straight and face-on in polished chrome, and the plasma pulse (plasma.mjs)
-// does the moving: it eases away from the top lobe, runs once round the knot
-// (drawn out into a comet as it gathers speed, burning brighter), and brakes
-// back into the top. The payoff is the seating: it flares, and a ripple of
-// red and blue light runs off down the tube both ways and fades. Rest pose
-// (t = 0): the plasma parked on the top lobe, as the old pulse parked. The
-// knot itself never moves (no flick, no lift, no rattle: each was tried and
-// taken out).
-
-const EU_LOOP = 3.2;
-const EU_TP = .1;   // the pulse leaves the top, s
-const EU_TL = 2.35; // and is home again, s
-// The pulse's top speed (laps/s), to read its speed as 0..1 in the shader.
-let EU_VMAX = 0;
-for (let i = 1; i < 1000; i++) {
-  const x = i / 1000, e = x ** 1.25;
-  EU_VMAX = Math.max(EU_VMAX, 30 * e * e * (e - 1) ** 2 * 1.25 * x ** .25 / (EU_TL - EU_TP));
-}
-const eu = (x) => x.toFixed(5);
-
-const KNOT = {
-  key: "plasma-knot",
-  name: "Plasma knot",
-  loop: EU_LOOP,
-  glsl: `
-#define LOOP ${eu(EU_LOOP)}
-#define TL ${eu(EU_TL)}
-#define TP ${eu(EU_TP)}
-#define VMAX ${eu(EU_VMAX)}
-${plasmaKnot(`
-void timeline(float t) {
-  // Eases away from the top, fastest late in the lap, brakes into the top.
-  float xp = clamp((t - TP) / (TL - TP), 0., 1.);
-  float e = pow(xp, 1.25);
-  gU = t >= TL ? 0. : e * e * e * (e * (e * 6. - 15.) + 10.);
-  gV = t > TP && t < TL ? 30. * e * e * (e - 1.) * (e - 1.) * 1.25 * pow(xp, .25) / (TL - TP) / VMAX : 0.;
-  gTrail = pulseR() * (.55 + 1.1 * gV);
-  // The seating: it flares, and a ripple of light runs off both ways and
-  // fades; all of it gone before the loop wraps.
-  float since = t - TL, fade = 1. - smoothstep(LOOP - .45, LOOP - .05, t);
-  gFlare = (since < 0. ? smoothstep(-.08, 0., since) : exp(-since / .24)) * fade;
-  gRip = max(since, 0.) * 3.;
-  gRipA = since > 0. ? (1. - exp(-since / .04)) * exp(-since / .34) * fade : 0.;
-  // Steady when parked, brighter the faster it runs, brightest as it seats.
-  gE = .65 + .55 * gV + 1.1 * gFlare;
-}
-`)}
-`,
-};
-
-// IGNITION: the onboarding's last moment, played once, not looped. It
-// starts from the mark's rest pose (the plasma parked on the top lobe) and
-// the pulse sets off slowly, then speeds up without limit: its speed is
-// W0 / (1 - t/T)^P, which runs to infinity at T. As it goes faster it burns
-// brighter and its comet tail draws out (the smear of a frame's exposure)
-// until it wraps the whole knot: no head left, one ring of light, going
-// white-hot. At T it flashes and the bloom floods out, and the app opens
-// from it (the page's job, not the mark's).
-
-const IG_T = 3;      // infinity, s
-const IG_DUR = 3.2;  // the flash after it, brief: the page takes over
-const IG_W0 = .3;    // laps/s when it sets off
-const IG_P = 1.6;
-const ig = (x) => x.toFixed(5);
-
-const IGNITION = {
-  key: "plasma-ignite",
-  name: "Ignition",
-  loop: IG_DUR,
-  once: true,
-  // When it flashes: what mark.ignite() resolves at.
-  flash: IG_T,
-  glsl: `
-#define LOOP ${ig(IG_DUR)}
-#define T_INF ${ig(IG_T)}
-#define W0 ${ig(IG_W0)}
-#define P ${ig(IG_P)}
-${plasmaKnot(`
-void timeline(float t) {
-  float x = min(t / T_INF, .9992);
-  // Laps travelled (the integral of the speed), eased off the rest.
-  float ease = smoothstep(0., .7, t);
-  float laps = W0 * T_INF / (P - 1.) * (pow(1. - x, 1. - P) - 1.) * ease;
-  float speed = W0 * pow(1. - x, -P) * ease;
-  gU = fract(laps);
-  gV = clamp(speed / 2.5, 0., 1.);
-  // The tail is what a frame's exposure smears: at about 45 laps/s it
-  // reaches all the way round.
-  gTrail = pulseR() * .55 + speed * KLEN / 45.;
-  gRing = smoothstep(6., 40., speed);
-  float since = t - T_INF;
-  float flash = smoothstep(-.06, .04, since);
-  gWhite = max(smoothstep(25., 90., speed), flash);
-  // Its light climbs with its speed, up to a point: past ~120 laps/s it is
-  // all one ring already.
-  gE = .7 + .38 * log2(1. + min(speed, 120.)) + flash;
-  gBloom = 1. + .55 * gRing + .45 * smoothstep(0., .2, since);
-  gFlare = flash;
-}
-`)}
-`,
-};
-
-// The mark as an element, on top of the metal engine (metal.js), for
-// logo.js: animated, it loops; with `idle` it waits at rest until
-// setRunning(true), and on setRunning(false) it finishes the loop it is in
-// and parks at the rest pose; ignite() plays the onboarding's finale.
-//
-// Cost is what decides the design. One WebGL context draws every mark. A
-// small mark (48 CSS px and under) never renders twice: each frame of its
-// loop is drawn once, into a strip shared by every mark of that size,
-// studio and tile, and played from there at 30 fps; a cold strip fills in
-// as the loop first plays, at most a few frames per tick. Larger marks
-// render live at the display's rate. Marks off screen, in hidden tabs or
-// detached don't draw at all.
-//
-// The studio follows the theme: --mark-studio on the mark (1 dark, 0 light),
-// which app.css sets per theme and a dark card can override locally.
-
-
-
-const MM_SMALL = 48;
-const MM_FPS = 30;
-const MM_MISSES = 4;
-
-let mmCount = 0;
-const mmMarks = new Set();
-const mmStrips = new Map();
-let mmFrame = 0;
-let mmLast = 0;
-
-const mmStudio = (el) => {
-  const v = getComputedStyle(el).getPropertyValue("--mark-studio").trim();
-  if (v) return +v ? 1 : 0;
-  const t = document.documentElement.dataset.theme;
-  if (t) return t === "dark" ? 1 : 0;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
-};
-
-// Frames of one loop at one pixel size, studio and tile, kept in a canvas
-// as a grid of cells.
-function mmStrip(dir, w, dark, tile, px) {
-  const key = `${dir.key}|${w}|${dark}|${tile}`;
-  let s = mmStrips.get(key);
-  if (s) return s;
-  const n = Math.max(1, Math.round(dir.loop * MM_FPS));
-  const cols = Math.ceil(Math.sqrt(n));
-  const cv = document.createElement("canvas");
-  cv.width = cols * w;
-  cv.height = Math.ceil(n / cols) * w;
-  s = { cv, ctx: cv.getContext("2d"), n, cols, w, have: new Uint8Array(n), dark, tile, px, dir };
-  mmStrips.set(key, s);
-  return s;
-}
-const mmCell = (s, i) => [(i % s.cols) * s.w, Math.floor(i / s.cols) * s.w];
-// Without WebGL the mark is a picture of its rest pose (mark-still.js,
-// fetched only then).
-let mmStill = null;
-const mmStillFor = (dark) => (mmStill ??= import("./mark-still.js").then((m) => m.MARK_STILL)).then((s) => s[dark ? "dark" : "light"]);
-
-// `ignition` is the onboarding's one-shot direction (plasma.js's IGNITION),
-// played by box.ignite().
-function metalLogo(dir, { size = 24, animated = true, tile = false, className = "", idle = false, duration, ignition } = {}) {
-  // Drawn at the size it is laid out at when CSS makes it bigger than asked.
-  let drawn = size;
-  const still = !animated || matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const box = document.createElement("span");
-  box.className = `logo-mark metal${className ? ` ${className}` : ""}`;
-  box.style.width = `${size}px`;
-  box.style.height = `${size}px`;
-  const cv = document.createElement("canvas");
-  cv.setAttribute("aria-hidden", "true");
-  cv.style.cssText = "display:block;width:100%;height:100%";
-  box.append(cv);
-  const loop = dir.loop;
-  const rate = duration ? loop / duration : 1;
-  const id = ++mmCount;
-  let running = !idle && !still;
-  let homing = false;
-  let clock = 0;
-  let shown = -1;
-  let visible = true;
-  let studio = null;
-
-  // Once on the page, a mark that leaves it is dropped (and taken back if it
-  // returns). Before then its studio is a guess from the document's theme.
-  let seen = false;
-  let guessed = false;
-  // The ignition, while it plays: its clock, rate, and the promise waiting
-  // for its flash.
-  let igniting = false, igClock = 0, igRate = 1, igDone = null;
-  const flashed = () => { if (igDone) { const done = igDone; igDone = null; done(); } };
-
-  const draw = (budget) => {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    const size = drawn;
-    if (igniting) {
-      // One-shot, so drawn live at any size.
-      const w = Math.round(size * dpr);
-      if (cv.width !== w) { cv.width = w; cv.height = w; }
-      if (studio === null) { studio = mmStudio(box); guessed = !box.isConnected; }
-      const e = metalEngine();
-      if (!e.ok) return budget;
-      const ctx = cv.getContext("2d");
-      ctx.clearRect(0, 0, w, w);
-      e.paint(ctx, ignition, { w, h: w, px: size, time: Math.min(igClock, ignition.loop - .001), loop: ignition.loop, dark: studio, tile: tile ? 1 : 0, aa: size <= 96 ? 2 : 1 });
-      shown = 1;
-      return budget;
-    }
-    const w = Math.round(size * dpr);
-    if (cv.width !== w) { cv.width = w; cv.height = w; shown = -1; }
-    if (studio === null) { studio = mmStudio(box); guessed = !box.isConnected; }
-    const e = metalEngine();
-    const ctx = cv.getContext("2d");
-    if (!e.ok) {
-      if (shown < 0) {
-        shown = 0;
-        mmStillFor(studio).then((src) => {
-          const img = new Image();
-          img.onload = () => { ctx.clearRect(0, 0, w, w); ctx.drawImage(img, 0, 0, w, w); };
-          img.src = src;
-        }, () => {});
-      }
-      return budget;
-    }
-    if (size <= MM_SMALL) {
-      const s = mmStrip(dir, w, studio, tile ? 1 : 0, size);
-      const i = Math.floor((clock / loop) * s.n) % s.n;
-      if (!s.have[i]) {
-        // Cold strip: past this tick's budget, hold the last frame shown
-        // rather than stall the page.
-        if (budget <= 0 && shown >= 0 && i !== 0) return budget;
-        const [x, y] = mmCell(s, i);
-        e.paint(s.ctx, dir, { w, h: w, px: size, time: (i / s.n) * loop, loop, dark: studio, tile: s.tile }, x, y);
-        s.have[i] = 1;
-        budget--;
-      }
-      if (i === shown) return budget;
-      const [x, y] = mmCell(s, i);
-      ctx.clearRect(0, 0, w, w);
-      ctx.drawImage(s.cv, x, y, w, w, 0, 0, w, w);
-      shown = i;
-      return budget;
-    }
-    ctx.clearRect(0, 0, w, w);
-    e.paint(ctx, dir, { w, h: w, px: size, time: clock, loop, dark: studio, tile: tile ? 1 : 0, aa: size <= 96 ? 2 : 1 });
-    shown = 1;
-    return budget;
-  };
-
-  const m = {
-    id,
-    // Whether this mark still wants frames.
-    wants: () => box.isConnected && visible && (running || homing || shown < 0 || (igniting && igClock < ignition.loop)),
-    step(dt, budget) {
-      if (!box.isConnected) { if (seen) mmMarks.delete(m); return budget; }
-      seen = true;
-      if (guessed) {
-        guessed = false;
-        const real = mmStudio(box);
-        if (real !== studio) { studio = real; shown = -1; }
-      }
-      if (!visible) return budget;
-      if (igniting) {
-        if (igClock >= ignition.loop) return budget;
-        igClock += dt * igRate;
-        if (igClock >= ignition.flash) flashed();
-        return draw(budget);
-      }
-      if (!running && !homing && shown >= 0) return budget;
-      if (running || homing) {
-        clock += dt * rate;
-        if (homing && clock >= loop) { clock = 0; homing = false; }
-        clock %= loop;
-      }
-      return draw(budget);
-    },
-    restyle() { studio = null; shown = -1; },
-  };
-  mmMarks.add(m);
-  // The first frame now, so the canvas is never blank: a view transition
-  // can snapshot it before the next animation frame.
-  draw(1);
-
-  if (typeof ResizeObserver === "function") {
-    new ResizeObserver(([en]) => {
-      const laid = Math.round(Math.max(size, en.contentRect.width));
-      if (laid !== drawn) { drawn = laid; shown = -1; mmWake(); }
-    }).observe(box);
-  }
-  if (typeof IntersectionObserver === "function") {
-    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) { mmMarks.add(m); mmWake(); } }).observe(box);
-  }
-
-  // Waits at rest until running; on stop, finishes the loop it is in and
-  // parks at the rest pose (t = 0).
-  box.setRunning = (on) => {
-    if (still) return;
-    on = Boolean(on);
-    if (on) { running = true; homing = false; }
-    else if (running) { running = false; homing = clock > .001; }
-    box.classList.toggle("running", running);
-    mmWake();
-  };
-  if (running) box.classList.add("running");
-  // logo.js's marks were SVG with a SMIL timeline, and callers rewind them
-  // through it (welcome.js's oneLap: mark.firstElementChild.setCurrentTime(0)).
-  // The canvas answers the same calls, in seconds of the mark's own lap
-  // (`duration`), so those callers keep working unchanged.
-  cv.setCurrentTime = (t) => { clock = ((t * rate) % loop + loop) % loop; shown = -1; mmWake(); };
-  cv.getCurrentTime = () => clock / rate;
-  box.restart = () => cv.setCurrentTime(0);
-  // The onboarding's finale: from rest, the plasma speeds up to infinity and
-  // flashes. Resolves at the flash, when the page should open the app;
-  // `duration` is the time to the flash. Resolves at once when there is
-  // nothing to play (reduced motion, no WebGL, no ignition), and a timer
-  // backs it up so it never hangs (a hidden tab draws no frames).
-  box.ignite = ({ duration: d } = {}) => new Promise((done) => {
-    if (!ignition || still || !metalEngine().ok) { done(); return; }
-    igDone = done;
-    igniting = true;
-    igClock = 0;
-    igRate = d ? ignition.flash / d : 1;
-    running = false; homing = false;
-    setTimeout(flashed, (ignition.flash / igRate) * 1000 + 600);
-    mmWake();
-  });
-  mmWake();
-  return box;
-}
-
-function mmTick(now) {
-  mmFrame = 0;
-  const dt = mmLast ? Math.min((now - mmLast) / 1000, .1) : 0;
-  mmLast = now;
-  if (document.hidden) { mmLast = 0; return; }
-  let budget = MM_MISSES;
-  for (const m of mmMarks) budget = m.step(dt, budget);
-  if ([...mmMarks].some((m) => m.wants())) mmWake();
-  else mmLast = 0;
-}
-function mmWake() { if (!mmFrame) mmFrame = requestAnimationFrame(mmTick); }
-
-// Theme changes repaint every mark in its new studio.
-const mmRestyle = () => { for (const m of mmMarks) m.restyle(); mmWake(); };
-if (typeof window !== "undefined") {
-  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", mmRestyle);
-  new MutationObserver(mmRestyle).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) mmWake(); });
-}
-
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !metalEngine().ok) return;
-  document.querySelector(".hero-mark").replaceChildren(metalLogo(KNOT, { size: 136 }));
-})();
+// The version on the last screen, as on the download page.
+fetch("https://api.github.com/repos/dinesh4720/design-app-releases/releases/latest").then((r) => (r.ok ? r.json() : null)).then((r) => {
+  const v = /^v?(\d[\d.]*)$/.exec(r?.tag_name ?? "")?.[1];
+  if (v) for (const n of document.querySelectorAll("[data-version]")) n.textContent = v;
+}).catch(() => {});
 </script>
-<!-- /mark-script -->
 </body>
 </html>

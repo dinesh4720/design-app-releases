@@ -1,7 +1,9 @@
 # design-app-releases
 
-Releases of Knot: installers and update feeds for macOS and Linux.
+Releases of Knot: installers and update feeds for Mac, Windows, Linux and Android.
 
-Download page: https://dinesh4720.github.io/design-app-releases/
+Website: https://dinesh4720.github.io/design-app-releases/
 
-The page is `index.html` in this repo, served by GitHub Pages from `main`. It links to the latest release on its own (it asks GitHub's API for it), so a new release needs no change here.
+Download page: https://dinesh4720.github.io/design-app-releases/download.html
+
+GitHub Pages serves both from `main`. `index.html` and the files beside it are the website. `download.html` is the download page. Both ask GitHub's API for the latest release, so a new release needs no change here.
