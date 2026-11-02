@@ -53,7 +53,7 @@
   function cloneScreen() {
     const c = document.createElement("canvas"); c.width = 1024; c.height = 640;
     const x = c.getContext("2d"), ink = "#141416", soft = "#77777d", line = "#dcdcdf", F = "Archivo, Helvetica, Arial, sans-serif";
-    const pill = (l, t, w, h, r, fill, stroke) => { x.beginPath(); x.roundRect(l, t, w, h, r); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); } };
+    const pill = (l, t, w, h, r, fill, stroke) => { x.beginPath(); if (x.roundRect) x.roundRect(l, t, w, h, r); else x.rect(l, t, w, h); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); } };
     x.fillStyle = "#fbfbfc"; x.fillRect(0, 0, 1024, 640);
     pill(48, 34, 26, 26, 8, ink);
     x.fillStyle = ink; x.font = `600 23px ${F}`; x.textBaseline = "middle"; x.fillText("Acme", 86, 48);
@@ -73,20 +73,39 @@
   }
 
   // ---- the world ----
-  const canvas = $("#world");
+  const canvas = $("#world"), K = window.KNOT, mid = K.tier === "mid";
   let world = null;
+  K.trial();
+  // Leaving a page that's up, or one just opened, says nothing. Walking away from a long wait does.
+  const opened = performance.now();
+  addEventListener("pagehide", () => { if (shown || performance.now() - opened < 3000) K.left(); });
   try {
-    world = new World(canvas, Math.min(screen.width, screen.height) < 600 && !html.classList.contains("film") ? { heightSize: 640, sdfSize: 96 } : {});
+    world = new World(canvas, mid || (Math.min(screen.width, screen.height) < 600 && !html.classList.contains("film")) ? { heightSize: 640, sdfSize: 96 } : {});
     window.__world = world;
     if (!world.ok) world = null;
   } catch (e) { console.warn("world:", e); world = null; }
   const toFlow = () => { world = null; html.classList.remove("paged", "world-on"); html.classList.add("flow"); $(".nav").setAttribute("data-solid", ""); };
-  if (!world) { toFlow(); return; }
-  canvas.addEventListener("world:lost", toFlow);
+  let gone = false;
+  const giveUp = (why) => { if (gone) return; gone = true; if (!K.film(why)) { gone = false; toFlow(); } };
+  if (!world) { giveUp("the live world couldn't start"); return; }
+  canvas.addEventListener("world:lost", () => giveUp("the graphics driver gave up"));
+  // The build gets 8 s between one step and the next and 15 s in all, counting only time someone could be looking at it.
+  if (!K.forced) {
+    let was = opened, step = -1, still = 0, waited = 0;
+    const watch = setInterval(() => {
+      if (shown || !world) return clearInterval(watch);
+      const now = performance.now(), dt = now - was;
+      was = now;
+      if (document.hidden) return;
+      waited += dt;
+      if (world.progress !== step) { step = world.progress; still = 0; } else still += dt;
+      if (still >= 8000 || waited >= 15000) { clearInterval(watch); giveUp("the live world took too long to build"); }
+    }, 500);
+  }
   // The app's pictures take a tenth of a second to hand to the GPU: not while the bands are flying.
-  let screensReady = false;
-  Promise.all(shots.map((im) => im.decode().catch(() => {}))).then(() => { screensReady = true; });
-  (document.fonts?.ready ?? Promise.resolve()).then(() => document.fonts?.load?.('600 66px Archivo')).catch(() => {}).then(() => world?.setClone(cloneScreen()));
+  let screensReady = false, decoding = false;
+  const decode = () => { if (decoding) return; decoding = true; Promise.all(shots.map((im) => im.decode().catch(() => {}))).then(() => { screensReady = true; }); };
+  K.font.then(() => world?.setClone(cloneScreen()));
 
   // ---- where you are ----
   const tickBox = $(".ticks");
@@ -400,9 +419,10 @@
 
   // ---- resolution: the screen's own pixels, down only if the GPU can't keep up ----
   // The canvas keeps to about 7.5 million pixels, or a big monitor pays for what no eye can see.
-  const dprNow = () => Math.min(devicePixelRatio || 1, 2, Math.sqrt(7.5e6 / (innerWidth * innerHeight)));
+  // A smaller GPU gets a smaller canvas: drawing fewer of the scene's pixels doesn't touch the passes that run at full size.
+  const dprNow = () => Math.min(devicePixelRatio || 1, 2, Math.sqrt((mid ? 1.6e6 : 7.5e6) / (innerWidth * innerHeight)));
   let canvasDpr = dprNow();
-  const ceilNow = () => clamp(Math.sqrt(5.6e6 / (innerWidth * innerHeight * canvasDpr * canvasDpr)), .4, 1);
+  const ceilNow = () => clamp(Math.sqrt((mid ? 1.6e6 : 5.6e6) / (innerWidth * innerHeight * canvasDpr * canvasDpr)), .4, 1);
   const FLOOR = .34;
   let shareCeil = ceilNow(), share = Math.min(shareCeil, .72), locked = false, late = 0, calm = 0, hold = 0;
   const limit = [1, 1]; // at rest, in flight: the most that has held
@@ -417,12 +437,24 @@
   let BEAT = 1000 / 60;
   const calmBeats = [];
   function adapt(dt, flying, bands) {
-    if (document.hidden || dt > 120 || locked) return; // a throttled tab says nothing about the GPU
+    if (document.hidden || dt > 1000 || locked) return; // a throttled tab or a sleeping machine says nothing about the GPU
     const k = flying ? 1 : 0;
-    if (dt > BEAT * 1.26) { calm = 0; if (++late >= 2) { late = 0; share = limit[k] = Math.max(FLOOR, share * .94); hold = 120; } }
+    if (dt > BEAT * 1.26) { calm = 0; if (++late >= 2) { late = 0; share = limit[k] = Math.max(FLOOR, share * (dt > 120 ? .8 : .94)); hold = 120; } }
     else if (hold > 0) hold--;
     else if (++calm > 30) { calm = 0; late = 0; share *= 1.015; limit[k] = Math.min(1, limit[k] * 1.002); }
     share = Math.min(share, shareCeil * (bands ? .56 : flying ? .84 : 1), limit[k]);
+  }
+  // Still under 18 frames a second at the smallest picture, it won't get better, the machine is suffering
+  // for it, and a film is smoother. A few good seconds, and this machine has shown it can run the world.
+  let slowMs = 0, slowN = 0, goodN = 0;
+  function judge(dt) {
+    if (K.forced || document.hidden) { slowMs = slowN = 0; goodN = Math.min(goodN, 0); return; }
+    // Proof takes four unbroken seconds at 25 frames a second or better, on a picture above the smallest.
+    if (goodN >= 0) goodN = dt < 40 && share > FLOOR * 1.2 ? goodN + 1 : 0;
+    if (goodN >= 240) { goodN = -1; K.proven(); }
+    // One huge gap is a machine waking up. Only a run of them counts.
+    if (dt > 55 && (share <= FLOOR * 1.02 || dt > 400)) { slowMs += Math.min(dt, 1000); slowN++; } else if ((slowMs = Math.max(0, slowMs - dt * 2)) === 0) slowN = 0;
+    if (slowMs > 3000 && slowN >= 3) giveUp("the live world ran too slowly");
   }
 
   // ---- sound ----
@@ -533,6 +565,7 @@
   const beads = new Float32Array(24), mag = new Float32Array(8), wet = [0, 0, 0, 0, 0, 0], pull = [0, 0, 0, 0, 0, 0], pullV = [0, 0, 0, 0, 0, 0];
   let last = start, kx = 0, ky = 0, lap = 0, lapped = false, shown = false, introT = -1, risen = false, ignition = -1, flood = -1, ignited = false, flash = 0, night = 0, wasNight = false, wasDusk = false, idle = 1, rose = false, wallDown = false, pulseAt = 0;
   function frame(stamp) {
+    if (gone || !html.classList.contains("paged")) return;
     requestAnimationFrame(frame);
     // The display's own clock: frames land evenly, so motion is even too.
     const now = stamp ?? performance.now(), rawDt = now - last, dt = Math.min(100, Math.max(0, rawDt)); last = now;
@@ -583,23 +616,28 @@
       if (dragging) userX = view[0] - lerp(TOUR[shot][0][0], TOUR[shot][1][0], smooth(clamp((tourT - HOLD_A) / GLIDE, 0, 1)));
     }
     if (slabFirst && slabL >= 1) slabFirst = false;
-    if (!world || !world.bake()) return;
-    adapt(rawDt, !!flight, introT >= 0 && introT < BAND.start + BAND.T);
+    if (!world || !world.bake() || !world.ready) return;
+    if (shown) adapt(rawDt, !!flight, introT >= 0 && introT < BAND.start + BAND.T); // not before BEAT is known: a 30 Hz screen would look late
     world.size(canvasDpr, share, shareCeil);
-    if (!world.ready) return;
     if (!shown) {
-      // The ignition's program is built first (within reason), so it can't stall the ending.
-      world.prepareIgnition();
-      if (!world.igniteReady && now - start < 2600) return;
+      // On a quick machine the ignition's program is built first, so it can't stall the ending.
+      // Anywhere else it waits until the journey is nearly there: it's as big as the whole scene.
+      const film = html.classList.contains("film"); // a film has all the time in the world, and needs the ending
+      if ((!mid && now - start < 900) || film) world.prepareIgnition();
+      if (world.ignite && !world.igniteReady && (film || now - start < 2600)) return;
       calmBeats.push(rawDt);
       if (now - start < 650 || calmBeats.length < 10) return; // the loader is allowed to be seen
+      if (world.outOfMemory) return giveUp("the graphics card ran out of memory");
       BEAT = clamp(calmBeats.sort((a, b) => a - b)[calmBeats.length >> 1], 1000 / 60, 34);
       world.warmIgnition();
       shown = true; html.classList.add("world-on");
       $("#loader")?.classList.add("done");
       if (page === 0) { html.classList.add("intro"); pages[0].classList.remove("on"); introT = 0; soon(now + (BAND.start + BAND.T * .72) * 1000, "touch"); soon(now + (BAND.start + BAND.T) * 1000, "close"); } else { introT = 9; closed = true; closedAt = now; }
     }
-    if (screensReady && (flight ? flight.next >= PROOF : page >= PROOF || (closedAt >= 0 && now - closedAt > 1500))) { screensReady = false; world.setScreens(shots); }
+    judge(rawDt);
+    if (closedAt >= 0 || flight) decode();
+    if (page >= TURN || flight?.next >= TURN) { world.prepareIgnition(); if (!flight) world.warmIgnition(); }
+    if (screensReady && (flight ? flight.next >= PROOF : page >= PROOF || (closedAt >= 0 && now - closedAt > 1500))) { screensReady = false; world.setScreens(shots, mid); }
     idle += ((flight ? 0 : 1) - idle) * (1 - Math.exp(-dt / 400));
     const c = evalAt(tl);
     c0wall = c.wall;
@@ -788,13 +826,15 @@
   layout();
   mark(0);
   requestAnimationFrame(frame);
-  addEventListener("resize", layout);
+  let settling = 0;
+  addEventListener("resize", () => { clearTimeout(settling); settling = setTimeout(layout, 120); });
   // Turning a phone can cross the line between the journey and the plain page.
   const roomy = innerHeight >= 440;
   addEventListener("resize", () => { if ((innerHeight >= 440) !== roomy && !matchMedia("(prefers-reduced-motion: reduce)").matches) location.reload(); });
-  document.fonts?.ready.then(layout);
-  addEventListener("load", layout);
+  K.font.then(layout);
+  if (document.readyState === "complete") layout(); else addEventListener("load", layout);
   window.__page = { get score() { return SCORE; }, state: () => [Math.round(tl), page, flight ? 1 : 0, walkI, shot, html.classList.contains("night") ? 1 : 0, html.classList.contains("dusk") ? 1 : 0, pages[TURN].classList.contains("swap") ? 1 : 0, pages.findIndex((p) => p.classList.contains("on"))], grab: () => new Promise((r) => grabs.push(r)), cost: () => new Promise((r) => costs.push(r)), still: (v) => { probe = v; }, ease, seek: (x) => { seekT = x; }, lock: (v) => { share = v; locked = true; }, get share() { return share; }, ids: IDS, go: (id) => go(IDS.indexOf(id)), jump: (id) => go(IDS.indexOf(id), true), get page() { return page; }, get flying() { return !!flight; }, get tl() { return tl; }, get stops() { return stops; }, get anchor() { return anchor; }, evalAt };
   const hash = location.hash.slice(1);
   if (IDS.includes(hash) && hash !== "top") go(IDS.indexOf(hash), true);
+  K.started = true;
 })();

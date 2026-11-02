@@ -25,24 +25,161 @@ if (/^#(pick|all|mac|windows|linux|android|installing|on-android|needs)$/.test(l
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400;75..125,600&display=swap">
 <script>
 // Paged unless the visitor asked for less motion, or there's no room: then it's an ordinary page.
+// The world runs live only where it runs well: anywhere else the journey is a film of it, which any
+// machine can play. In syntax any browser with WebGL 2 can read, so this always gets to the end.
 (() => {
-  const q = new URLSearchParams(location.search), m = q.get("motion");
-  let saved = null; try { saved = localStorage.getItem("m-motion"); } catch {}
+  const q = new URLSearchParams(location.search), m = q.get("motion"), html = document.documentElement;
+  const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const write = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
+  const saved = read("m-motion");
   const less = m === "off" || saved === "off" || (m !== "on" && saved !== "on" && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const gl = !!document.createElement("canvas").getContext("webgl2"), html = document.documentElement;
-  // A phone plays a film of the world, made from the same scene; a tablet tries it live first.
   const coarse = matchMedia("(pointer: coarse)").matches, phone = Math.min(screen.width, screen.height) < 600 && coarse;
-  const flat = innerWidth > innerHeight && innerHeight > 0;
-  const reel = !less && !q.has("film") && !flat && (q.has("reel") || (phone && q.get("world") !== "live"));
-  const ok = reel || (!less && gl && q.get("world") !== "off" && innerHeight >= 440);
-  html.classList.add(ok ? "paged" : "flow");
-  if (reel) html.classList.add("reel", "titled");
+  const flat = innerWidth > innerHeight && innerHeight > 0, roomy = innerHeight >= 440;
+  const forced = q.has("film") || q.get("world") === "live"; // films are made from the world, and a tester can ask for it
+  const K = window.KNOT = { films: matchMedia("(max-aspect-ratio: 23/20)").matches ? "film" : "film-wide", tier: "full", forced, note: read("knot-world"), started: false };
+
+  // The font comes in beside the page, not ahead of it: a slow font server can't hold anything up.
+  const font = document.createElement("link"), soon = (ms) => new Promise((done) => setTimeout(done, ms));
+  font.rel = "stylesheet"; font.href = "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400;75..125,600&display=swap";
+  K.font = Promise.race([new Promise((done) => { font.onload = font.onerror = done; }), soon(4000)]).then(() => document.fonts && Promise.race([document.fonts.load("600 66px Archivo"), soon(4000)])).catch(() => {});
+  document.head.append(font);
+
+  // How fast the GPU really is: one small job, timed, a few milliseconds on anything that can run the
+  // world. In steps of a ray per millisecond: an M4 does about 20, a software renderer under 1.
+  function speed(gl, enough) {
+    const part = (type, text) => { const s = gl.createShader(type); gl.shaderSource(s, text); gl.compileShader(s); return s; }, p = gl.createProgram();
+    gl.attachShader(p, part(gl.VERTEX_SHADER, "#version 300 es\nin vec2 a; void main() { gl_Position = vec4(a, 0., 1.); }"));
+    gl.attachShader(p, part(gl.FRAGMENT_SHADER, `#version 300 es
+precision highp float;
+uniform int z; uniform sampler2D t; out vec4 o;
+void main() {
+  vec2 p = gl_FragCoord.xy * .013; float d = 0.;
+  for (int i = z; i < 24; i++) {
+    vec3 q = vec3(p, d) * (1. + float(i) * .1);
+    d += length(sin(q) + cos(q.yzx)) * .1 + textureLod(t, q.xy, 0.).r * .1;
+  }
+  o = vec4(fract(d), fract(d * 3.), 0., 1.);
+}`));
+    gl.bindAttribLocation(p, 0, "a"); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return 0;
+    // A clock too coarse to read says nothing, fast or slow.
+    const a = performance.now(); let b = a;
+    while (b === a) b = performance.now();
+    if (b - a > 2) return 8;
+    gl.useProgram(p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const noise = new Uint8Array(64 * 64 * 4);
+    for (let i = 0; i < noise.length; i++) noise[i] = (i * 2654435761) >>> 24;
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, noise);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); // or a tiling GPU shades only the last of several full-screen draws
+    gl.viewport(0, 0, 256, 256);
+    const px = new Uint8Array(4), STEPS = 256 * 256 * 24 / 1e6;
+    const job = (n) => { const t = performance.now(); for (let i = 0; i < n; i++) gl.drawArrays(gl.TRIANGLES, 0, 3); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return performance.now() - t; };
+    job(1); // the first draw builds the pipeline
+    const slow = Math.min(job(1), job(1)); // a graphics chip just woken can be slow to start
+    if (slow > 40) return STEPS / slow;
+    let best = 0;
+    // The best of three: a busy moment can make a fast machine look slow, never the other way round.
+    for (let round = 0; round < 3 && best < enough; round++) {
+      let n = 1, ms = job(1);
+      while (ms < 4 && n < 64) { n *= 4; ms = Math.min(job(n), job(n)); }
+      best = Math.max(best, n * STEPS / Math.max(ms, .25));
+    }
+    return best;
+  }
+  // Why this machine shouldn't run the world, if it shouldn't.
+  function unfit() {
+    const note = String(K.note).split("|"), said = note[0], proven = said === "mid"; // it can run the world; a less busy day may show it can run more of it
+    if (said === "full") return "";
+    // A bad visit counts for a month: one busy day shouldn't cost a good machine the live world for ever.
+    if (K.note && !proven && !(Date.now() - note[1] > 30 * 864e5)) return said.indexOf("trying") === 0 ? "the last visit never finished loading" : said;
+    const cores = navigator.hardwareConcurrency, memory = navigator.deviceMemory;
+    if (cores < 4) return cores + " processor threads";
+    if (memory <= 4) return memory + " GB of memory";
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const gl = c.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "high-performance" });
+    if (!gl) return "no WebGL 2";
+    try {
+      const info = gl.getExtension("WEBGL_debug_renderer_info");
+      K.gpu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+      if (/swiftshader|llvmpipe|softpipe|software|basic render|warp|gdi generic|mesa offscreen|virtualbox|vmware|parallels|virgl|qxl|citrix|remotefx/i.test(K.gpu)) return "no graphics card in use";
+      // Without this a big shader freezes the page while it builds, and nothing can step in.
+      if (!gl.getExtension("KHR_parallel_shader_compile")) return "shaders would build on the page's own thread";
+      if (!gl.getExtension("EXT_color_buffer_float") && !gl.getExtension("EXT_color_buffer_half_float")) return "no floating-point targets";
+      // Direct3D gets the same shaders through a compiler that makes them slower.
+      const need = K.need = /Win/.test(navigator.platform) ? 7 : 3.5, full = 12;
+      K.speed = Math.max(K.speed || 0, Math.round(speed(gl, full) * 10) / 10);
+      if (K.speed < need && !proven) return "the graphics card is too slow for the live world";
+      K.tier = K.speed < full ? "mid" : "full";
+      return "";
+    } finally {
+      const end = gl.getExtension("WEBGL_lose_context");
+      if (end) end.loseContext();
+    }
+  }
+  // The scripts' own syntax: a browser that can't read them gets the ordinary page.
+  const modern = () => { try { new Function("class A { #a = 1; #b() { return this.#a; } } let x = null; x ??= 1; return x?.y ?? 2 ** 3;"); return true; } catch (e) { return false; } };
+
+  // What can be told without touching the GPU.
+  K.mode = (() => {
+    if (less || q.get("world") === "off" || !modern()) return "flow";
+    if (forced) return "world";
+    if (!roomy) return "flow";
+    if (q.has("reel") || (phone && !flat)) return "reel";
+    return "";
+  })();
+  html.classList.add(K.mode === "flow" ? "flow" : "paged");
+  // The rest, once the wait is on screen: the page calls this, and brings in the scripts when it's told.
+  K.settle = (then) => {
+    const check = () => { const t = performance.now(); try { K.why = unfit(); } catch (e) { K.why = "the machine check failed"; } K.took = (K.took || 0) + Math.round(performance.now() - t); };
+    const end = () => {
+      K.mode = K.mode || (!K.why ? "world" : navigator.connection && navigator.connection.saveData ? "flow" : "reel");
+      if (K.mode === "flow") { html.classList.remove("paged"); html.classList.add("flow"); }
+      if (K.mode === "reel") html.classList.add("reel", "titled");
+      then();
+    };
+    if (K.mode) return end();
+    check();
+    // A busy moment reads slower than the machine is, so a near miss gets a second look.
+    if (K.why && K.speed >= K.need / 4) setTimeout(() => { check(); end(); }, 400); else end();
+  };
   if (q.has("film")) html.classList.add("film");
   if (phone) matchMedia("(orientation: landscape)").addEventListener("change", () => location.reload());
-  if (ok && !reel && coarse) setTimeout(() => { if (!html.classList.contains("world-on")) location.search = flat ? "?world=off" : "?reel"; }, 5000);
+
+  // A visit is a trial until it has run well. One that never says how it ended didn't end well.
+  K.trial = () => { if (!forced) write("knot-world", "trying " + K.tier + "|" + Date.now()); };
+  K.proven = () => { if (!forced) write("knot-world", K.tier); };
+  K.left = () => { if (!forced && String(read("knot-world")).indexOf("trying") === 0) write("knot-world", K.note === "full" || K.note === "mid" ? K.note : null); };
+  // The world can't go on here: films from now on, from where the visitor is.
+  K.film = (why) => {
+    if (forced) return false;
+    write("knot-world", why + "|" + Date.now());
+    location.replace(location.pathname + "?reel" + location.hash);
+    return true;
+  };
+  if (q.has("reel") && /\|/.test(read("knot-world")) && !/^trying/.test(read("knot-world"))) history.replaceState(null, "", location.pathname + location.hash);
+
+  // Whatever happens to the scripts on their way here, the words still arrive.
+  const plain = () => { if (K.started) return; K.started = true; html.classList.remove("paged", "reel", "titled", "intro"); html.classList.add("flow"); };
+  if (K.mode !== "flow") {
+    let waited = 0, last = performance.now();
+    const wait = setInterval(() => {
+      if (K.started) return clearInterval(wait);
+      const now = performance.now();
+      if (!document.hidden) waited += now - last;
+      last = now;
+      if (waited >= 15000) plain();
+    }, 1000);
+    // Only this site's own scripts: a browser extension's errors say nothing about the page.
+    const ours = (u) => String(u).indexOf(location.origin) === 0;
+    addEventListener("error", (e) => { if (ours(e.filename) || (e.target && e.target.tagName === "SCRIPT" && ours(e.target.src))) plain(); }, true);
+  }
 })();
 </script>
 <style>
@@ -130,12 +267,13 @@ html.flow .page { padding: clamp(96px, 16vh, 180px) var(--gut); }
 html.flow .sound { display: none; }
 
 /* the wait: three arcs, one for each band to come */
-#loader { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: var(--ground); transition: opacity .35s, visibility 0s .35s; }
+#loader { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: var(--ground); transition: opacity .35s, visibility 0s .35s; }
+html.paged #loader { display: grid; }
 #loader.done { opacity: 0; visibility: hidden; }
+#loader.done svg { animation: none; }
 #loader svg { width: 34px; height: 34px; animation: turn 1.1s linear infinite; }
 #loader circle { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 17 7.2; }
 @keyframes turn { to { transform: rotate(360deg); } }
-html.flow #loader { display: none; }
 html.intro .nav, html.intro .ticks { opacity: 0; pointer-events: none; }
 .nav, .ticks { transition: opacity .7s .2s; }
 
@@ -389,7 +527,21 @@ html.night .drop .legal { opacity: 0; }
 
 <script>
 window.MOTION = { scroll: "native" };
-(document.documentElement.classList.contains("reel") ? ["sound.js", "film/film.js", "reel.js"] : ["assets/knot-engine.js", "sound.js", "world.js", "scene.js"]).forEach((src) => { const s = document.createElement("script"); s.src = src + "?v=81"; s.async = false; document.body.append(s); });
+// The wait is on screen before the machine is asked anything, and a tab nobody is looking at asks nothing.
+(() => {
+  const K = window.KNOT, html = document.documentElement;
+  const load = () => {
+    (html.classList.contains("reel") ? ["sound.js", (K ? K.films : "film") + "/film.js", "reel.js"] : ["assets/knot-engine.js", "sound.js", "world.js", "scene.js"]).forEach((src) => { const s = document.createElement("script"); s.src = src + "?v=82"; s.async = false; document.body.append(s); });
+    if (K && /[?&]why\b/.test(location.search)) {
+      const p = document.createElement("pre");
+      p.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:40;margin:0;padding:10px 12px;background:#fff;color:#000;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap;max-width:calc(100vw - 48px)";
+      p.textContent = ["mode " + K.mode, "why " + (K.why || "-"), "tier " + K.tier, "speed " + (K.speed || "-"), "check took " + K.took + " ms", "gpu " + (K.gpu || "-"), "threads " + navigator.hardwareConcurrency, "memory " + navigator.deviceMemory, "note " + K.note].join("\n");
+      document.body.append(p);
+    }
+  };
+  if (!K) return load();
+  if (K.mode) K.settle(load); else requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => K.settle(load))));
+})();
 </script>
 <script>
 // The version on the last screen, as on the download page.

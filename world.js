@@ -216,7 +216,7 @@ uniform vec4 u_bead[6];
 // ---- the knot ----
 float beads(vec3 p) {
   float d = 1e3;
-  for (int i = 0; i < 6; i++) { vec4 b = u_bead[i]; if (b.w > 0.) d = smin(d, length(p - b.xyz) - b.w, u_beadK); }
+  for (int i = u_zero; i < 6; i++) { vec4 b = u_bead[i]; if (b.w > 0.) d = smin(d, length(p - b.xyz) - b.w, u_beadK); }
   return d;
 }
 // A slow tremble, worked out from where a point is, so it is the same on both sides of
@@ -330,7 +330,7 @@ float traceK(vec3 o, vec3 d, float px, int steps) {
   h = sqrt(h);
   float t = max(0., -b - h), t1 = -b + h;
   if (t1 < 0.) return -1.;
-  for (int i = 0; i < steps; i++) {
+  for (int i = u_zero; i < steps; i++) {
     float dd = sd(o + d * t), e = px * max(t, .25);
     if (dd < e * .5) return t;
     if (dd / e < gMinD) { gMinD = dd / e; gMinT = t; }
@@ -351,7 +351,7 @@ vec3 onStrand(vec3 p, out vec3 d1, out float t) {
   vec4 s = texelFetch(u_sdf, clamp(ivec3((c / (2. * B) + .5) * float(N)), ivec3(0), ivec3(N - 1)), 0);
   float s1, c1, s2, c2, s3, c3;
   t = atan(s.b, s.g) + PI;
-  for (int i = 0; i < 2; i++) {
+  for (int i = u_zero; i < 2; i++) {
     s1 = sin(t); c1 = cos(t); s2 = sin(2. * t); c2 = cos(2. * t); s3 = sin(3. * t); c3 = cos(3. * t);
     cc = vec3(KS0 * (s1 + 2. * s2), KS0 * (2. * c2 - c1), -KH0 * s3);
     d1 = vec3(KS0 * (c1 + 4. * c2), KS0 * (s1 - 4. * s2), -3. * KH0 * c3);
@@ -408,14 +408,14 @@ void surfaceAt(vec3 p, out vec3 n, out float rad) {
 }
 float occK(vec3 p, vec3 n) {
   float o = 0., w = 1.;
-  for (int i = 1; i <= 3; i++) { float h = .06 + .13 * float(i); o += (h - sd(p + n * h)) * w; w *= .6; }
+  for (int i = u_zero + 1; i <= 3; i++) { float h = .06 + .13 * float(i); o += (h - sd(p + n * h)) * w; w *= .6; }
   return clamp(1. - 1.3 * o, 0., 1.);
 }
 // Where one strand faces another it darkens softly, never with a hard image.
 float seeOther(vec3 o, vec3 d, float cone, out float at) {
   float near = 1., t = .03;
   at = -1.;
-  for (int i = 0; i < 18; i++) {
+  for (int i = u_zero; i < 18; i++) {
     float h = sd(o + d * t), q = h / (cone * t + .004);
     if (q < near) { near = q; at = t; }
     if (h < .002) { near = 0.; at = t; break; }
@@ -506,12 +506,12 @@ float walk(vec3 ro, vec3 rd, float t, float end) {
   // A step can't go through a slope: what limits it is how fast the ray closes on the sea,
   // straight down plus sideways times how steep the sea can be here.
   float prev = t, drop = max(-rd.y, 0.), side = length(rd.xz);
-  for (int i = 0; i < 64; i++) {
+  for (int i = u_zero; i < 64; i++) {
     vec3 p = ro + rd * t;
     vec4 hs = textureLod(u_hmap, p.xz / u_hL + .5, 0.);
     float d = p.y - hs.r;
     if (d < .001 + t * .0003) {
-      for (int j = 0; j < 4; j++) { float mid = .5 * (prev + t); vec3 q = ro + rd * mid; if (q.y < seaAt(q.xz)) t = mid; else prev = mid; }
+      for (int j = u_zero; j < 4; j++) { float mid = .5 * (prev + t); vec3 q = ro + rd * mid; if (q.y < seaAt(q.xz)) t = mid; else prev = mid; }
       return t;
     }
     prev = t;
@@ -530,7 +530,7 @@ float traceSea(vec3 ro, vec3 rd, float limit) {
     // Only a strong magnet's circle stands up; everywhere else the sea is gentle, and marching over
     // it would only leave a grain in the distance, which a mirror shows as an edge.
     float a = 1e9, b = -1.;
-    for (int m = 0; m < 2; m++) {
+    for (int m = u_zero; m < 2; m++) {
       vec4 g = u_mag[m];
       if (g.w < .26) continue;
       vec2 co = ro.xz - g.xy, cd = rd.xz;
@@ -546,7 +546,7 @@ float traceSea(vec3 ro, vec3 rd, float limit) {
   }
   if (rd.y > -.0006) return -1.;
   float t = start;
-  for (int i = 0; i < 3; i++) {
+  for (int i = u_zero; i < 3; i++) {
     vec3 p = ro + rd * t;
     t += (p.y - seaAt(p.xz)) / max(-rd.y, .09) * .85;
     t = max(t, 0.);
@@ -690,13 +690,13 @@ vec4 wallAt(vec3 ro, vec3 rd, float tMax, float pxs, bool quick, out float lipOu
 float seeNext(vec3 ro, vec3 rd, out float near) {
   float t = .04, prev = t, side = length(rd.xz), drop = max(-rd.y, 0.), at = -1.;
   near = 1.;
-  for (int i = 0; i < 26; i++) {
+  for (int i = u_zero; i < 26; i++) {
     vec3 p = ro + rd * t;
     if (p.y > u_seaTop) break;
     vec4 hs = textureLod(u_hmap, p.xz / u_hL + .5, 0.);
     float d = p.y - hs.r;
     if (d < 0.) {
-      for (int j = 0; j < 3; j++) { float mid = .5 * (prev + t); vec3 q = ro + rd * mid; if (q.y < textureLod(u_hmap, q.xz / u_hL + .5, 0.).r) t = mid; else prev = mid; }
+      for (int j = u_zero; j < 3; j++) { float mid = .5 * (prev + t); vec3 q = ro + rd * mid; if (q.y < textureLod(u_hmap, q.xz / u_hL + .5, 0.).r) t = mid; else prev = mid; }
       near = 0.; return t;
     }
     float nr = d / (t * .05 + .012);
@@ -1003,7 +1003,7 @@ void main() {
   class World {
     constructor(canvas, { simSize = 256, simL = 44, sdfSize = 112, envSize = 512, heightSize = 1024 } = {}) {
       this.canvas = canvas; this.ok = false; this.simL = simL; this.simSize = simSize; this.sdfSize = sdfSize; this.envSize = envSize;
-      this.cssW = 0; this.cssH = 0; this.pendingDrops = []; this.simAcc = 0; this.last = 0; this.baked = false; this.bakeZ = 0;
+      this.cssW = 0; this.cssH = 0; this.pendingDrops = []; this.simAcc = 0; this.last = 0; this.baked = false; this.bakeZ = 0; this.bakeF = 0;
       const K = window.KnotMark;
       if (!K?.METAL_HEAD) return;
       const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
@@ -1022,18 +1022,21 @@ void main() {
         .replace("float g = exp(-dot(cl, cl) / (r * r));", "float g = exp(-dot(cl, cl) / (r * r)) * smoothstep(-.05, .35, tc);")
         .replace("cRed = mix(vec3(.78, .034, .05), vec3(1., .07, .107), u_dark);", "cRed = vec3(.92);")
         .replace("cBlue = mix(vec3(.005, .32, .69), vec3(.03, .66, 1.), u_dark);", "cBlue = vec3(.62, .64, .68);");
-      const head = K.METAL_HEAD.replace("out vec4 outColor;", "layout(location = 0) out vec4 outColor; layout(location = 1) out vec4 outVel;\nuniform float u_plasma;");
+      // The big loops start at u_zero, which is always 0. A compiler can't unroll a loop it can't count:
+      // Windows' copies out each loop and everything it calls for every step, which takes it minutes.
+      const head = K.METAL_HEAD.replace("out vec4 outColor;", "layout(location = 0) out vec4 outColor; layout(location = 1) out vec4 outVel;\nuniform float u_plasma;\nuniform int u_zero;");
       const src = (dir) => head + silver(dir.glsl) + "\n" + WORLD;
       this.loop = K.KNOT.loop; this.igniteLoop = K.IGNITION.loop;
-      this.scene = this.#program(VERT, src(K.KNOT));
+      this.builds = []; this.building = null; this.built = 0;
+      this.bakeS = this.#program(VERT, BAKE_SDF);
+      this.bakeE = this.#program(VERT, BAKE_ENV);
+      this.sim = this.#program(VERT, SIM);
+      this.hmapP = this.#program(VERT, HEIGHT);
       this.blur = this.#program(VERT_UV, BLUR);
       this.resolve = this.#program(VERT_UV, RESOLVE);
       this.comp = this.#program(VERT_UV, COMPOSITE);
-      this.sim = this.#program(VERT, SIM);
-      this.hmapP = this.#program(VERT, HEIGHT);
+      this.scene = this.#program(VERT, src(K.KNOT));
       this.hmap = this.#target(heightSize, heightSize); this.hmapN = heightSize; this.hmapL = 48;
-      this.bakeS = this.#program(VERT, BAKE_SDF);
-      this.bakeE = this.#program(VERT, BAKE_ENV);
       this.simA = this.#target(simSize, simSize);
       this.simB = this.#target(simSize, simSize);
       for (const t of [this.simA, this.simB]) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
@@ -1041,29 +1044,40 @@ void main() {
       this.igniteSrc = src(K.IGNITION);
       this.view = [0, 0, 1, 1]; this.still = [0, 0]; this.none = [0, 0, 0, 0]; this.none4 = [0, 0, 0, 0]; this.title3 = [0, 0, .5];
       this.prev = null;
-      this.timer = gl.getExtension("EXT_disjoint_timer_query_webgl2"); this.queries = []; this.gpuMs = 0;
+      // Reading it stops the page to wait for the GPU, so only the tools that measure ask for it (?timing).
+      this.timer = /[?&]timing\b/.test(location.search) ? gl.getExtension("EXT_disjoint_timer_query_webgl2") : null; this.queries = []; this.gpuMs = 0;
       this.ok = true;
     }
+    // One at a time, smallest first, so a weak machine works through them instead of starting them all at once.
     #program(vs, fs) {
-      const gl = this.gl;
+      const entry = { vs, fs, p: null, v: null, f: null, u: new Map(), ready: false };
+      this.builds.push(entry);
+      return entry;
+    }
+    #start() {
+      const gl = this.gl, e = this.builds.shift();
+      if (!e) return;
       const make = (type, s) => { const sh = gl.createShader(type); gl.shaderSource(sh, s); gl.compileShader(sh); return sh; };
-      const p = gl.createProgram(), v = make(gl.VERTEX_SHADER, vs), f = make(gl.FRAGMENT_SHADER, fs);
-      gl.attachShader(p, v); gl.attachShader(p, f); gl.bindAttribLocation(p, 0, "a"); gl.linkProgram(p);
-      return { p, v, f, u: new Map(), ready: false };
+      e.p = gl.createProgram(); e.v = make(gl.VERTEX_SHADER, e.vs); e.f = make(gl.FRAGMENT_SHADER, e.fs);
+      gl.attachShader(e.p, e.v); gl.attachShader(e.p, e.f); gl.bindAttribLocation(e.p, 0, "a"); gl.linkProgram(e.p);
+      this.building = e;
     }
     #linked(entry) {
       const gl = this.gl;
       if (entry.ready) return true;
-      if (this.parallel && !gl.getProgramParameter(entry.p, this.parallel.COMPLETION_STATUS_KHR)) return false;
-      if (!gl.getProgramParameter(entry.p, gl.LINK_STATUS)) {
-        const log = gl.getShaderInfoLog(entry.f) || gl.getProgramInfoLog(entry.p);
+      if (!this.building) this.#start();
+      const e = this.building;
+      if (!e || (this.parallel && !gl.getProgramParameter(e.p, this.parallel.COMPLETION_STATUS_KHR))) return false;
+      if (!gl.getProgramParameter(e.p, gl.LINK_STATUS)) {
+        const log = gl.getShaderInfoLog(e.f) || gl.getProgramInfoLog(e.p);
         console.warn("world: shader failed", log);
         this.ok = false;
         canvasFail(this.canvas);
         throw new Error(log);
       }
-      entry.ready = true;
-      return true;
+      e.ready = true; this.building = null; this.built++;
+      this.#start();
+      return entry.ready;
     }
     #u(e, name) { let l = e.u.get(name); if (l === undefined) { l = this.gl.getUniformLocation(e.p, name); e.u.set(name, l); } return l; }
     #texture(data) {
@@ -1098,7 +1112,7 @@ void main() {
       t.depth = depth;
       return t;
     }
-    // Shape and studio, a few slices a frame, so a slow GPU never freezes the page.
+    // Shape and studio, a few slices and faces a frame, so a slow GPU never freezes the page.
     bake() {
       if (this.baked || !this.ok) return this.baked;
       if (!this.#linked(this.bakeS) || !this.#linked(this.bakeE)) return false;
@@ -1120,32 +1134,40 @@ void main() {
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
       if (this.bakeZ < N) { gl.bindFramebuffer(gl.FRAMEBUFFER, null); return false; }
-      const S = this.envSize, levels = Math.floor(Math.log2(S)) + 1;
+      const S = this.envSize;
       gl.useProgram(this.bakeE.p);
       gl.viewport(0, 0, S, S);
       gl.uniform1f(this.#u(this.bakeE, "u_s"), S);
       // Each face: where (u, v, 1) points, as columns.
       const FACES = [[0, 0, -1, 0, -1, 0, 1, 0, 0], [0, 0, 1, 0, -1, 0, -1, 0, 0], [1, 0, 0, 0, 0, 1, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, -1, 0], [1, 0, 0, 0, -1, 0, 0, 0, 1], [-1, 0, 0, 0, -1, 0, 0, 0, -1]];
-      const room = (crisp) => {
-        const tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
-        gl.texStorage2D(gl.TEXTURE_CUBE_MAP, levels, gl.RGBA16F, S, S);
+      this.rooms ??= [0, 1].map(() => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_CUBE_MAP, t); gl.texStorage2D(gl.TEXTURE_CUBE_MAP, Math.floor(Math.log2(S)) + 1, gl.RGBA16F, S, S); return t; });
+      for (let i = 0; i < 2 && this.bakeF < 12; i++, this.bakeF++) {
+        const crisp = this.bakeF < 6 ? 0 : 1, face = this.bakeF % 6;
         gl.uniform1f(this.#u(this.bakeE, "u_crisp"), crisp);
-        FACES.forEach((m, i) => {
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, tex, 0);
-          gl.uniformMatrix3fv(this.#u(this.bakeE, "u_face"), false, new Float32Array(m));
-          gl.drawArrays(gl.TRIANGLES, 0, 3);
-        });
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X + face, this.rooms[crisp], 0);
+        gl.uniformMatrix3fv(this.#u(this.bakeE, "u_face"), false, new Float32Array(FACES[face]));
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (this.bakeF < 12) return false;
+      for (const t of this.rooms) {
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, t);
         gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
         gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        return tex;
-      };
-      this.env = room(0); this.envC = room(1);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      }
+      [this.env, this.envC] = this.rooms;
       for (const p of [this.bakeS, this.bakeE]) gl.deleteProgram(p.p);
       this.baked = true;
       return true;
+    }
+    // How far the build has come, for whoever is watching the clock.
+    get progress() { return this.built + this.bakeZ + this.bakeF; }
+    get outOfMemory() {
+      const gl = this.gl;
+      let full = false;
+      for (let i = 0, e; i < 8 && (e = gl.getError()) !== gl.NO_ERROR; i++) if (e === gl.OUT_OF_MEMORY) full = true;
+      return full;
     }
     get ready() { try { return this.#linked(this.scene) && this.#linked(this.blur) && this.#linked(this.resolve) && this.#linked(this.comp) && this.#linked(this.sim) && this.#linked(this.hmapP); } catch { return false; } }
     // The ignition's timeline is a second program; built in the background.
@@ -1166,17 +1188,23 @@ void main() {
       if (Math.abs(x) > L / 2 || Math.abs(z) > L / 2) return;
       if (this.pendingDrops.length < 30) this.pendingDrops.push({ x: x / L + .5, z: z / L + .5, r: r / L, s, n: 0 });
     }
-    setScreens(images) {
-      const gl = this.gl, an = gl.getExtension("EXT_texture_filter_anisotropic");
-      this.screens = images.map((img) => {
-        const t = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, t);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
-        if (an) gl.texParameterf(gl.TEXTURE_2D, an.TEXTURE_MAX_ANISOTROPY_EXT, 8);
-        return t;
-      });
+    // One picture a frame, each a moment's work to hand over. A smaller GPU gets them at half size.
+    setScreens(images, half) { this.screens = []; this.waiting = [...images]; this.half = half; }
+    #nextScreen() {
+      const gl = this.gl, an = gl.getExtension("EXT_texture_filter_anisotropic"), img = this.waiting.shift(), t = gl.createTexture();
+      let from = img;
+      if (this.half) {
+        const c = document.createElement("canvas"); c.width = img.naturalWidth >> 1; c.height = img.naturalHeight >> 1;
+        const x = c.getContext("2d");
+        if (x) { x.drawImage(img, 0, 0, c.width, c.height); from = c; }
+      }
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, from);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+      if (an) gl.texParameterf(gl.TEXTURE_2D, an.TEXTURE_MAX_ANISOTROPY_EXT, 8);
+      this.screens.push(t);
+      if (this.outOfMemory) { this.ok = false; canvasFail(this.canvas); }
     }
     setTitle(image) {
       const gl = this.gl;
@@ -1268,6 +1296,7 @@ void main() {
     frame(s) {
       if (!this.ok || !this.ready || !this.baked) return false;
       const gl = this.gl;
+      if (this.waiting?.length) this.#nextScreen();
       const dt = Math.min(.05, Math.max(0, s.time - this.last)); this.last = s.time;
       // The GPU's own clock, where it offers one, for how much of the screen to draw.
       const tq = this.timer;

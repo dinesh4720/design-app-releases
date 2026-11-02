@@ -1346,7 +1346,11 @@ if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => { if (!document.hidden) mmWake(); });
 }
 
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !metalEngine().ok) return;
+  // The picture stays unless the home page has seen this machine run its world. This mark builds its
+  // shader on the page's own thread, which on Windows can hold up the page for minutes.
+  let proven = false;
+  try { proven = localStorage.getItem("knot-world") === "full"; } catch {}
+  if (!proven || /Win/.test(navigator.platform) || matchMedia("(prefers-reduced-motion: reduce)").matches || !metalEngine().ok) return;
   document.querySelector(".hero-mark").replaceChildren(metalLogo(KNOT, { size: 136 }));
 })();
 </script>

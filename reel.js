@@ -1,15 +1,16 @@
-// reel.js — the journey on a phone. A phone can't be counted on to run the world live, so it plays
-// films of it, made from the same scene frame by frame, with the real words on top. Each screen is
+// reel.js — the journey wherever the world can't run live: phones, and any computer too weak for it.
+// They play films of it, made from the same scene frame by frame, with the real words on top. Each screen is
 // a film of getting there and a loop of being there, and a swipe plays the next one. The film is
 // the clock: the words and the notes read the time from it, so they can't drift from the picture.
 (() => {
   "use strict";
-  const html = document.documentElement, F = window.FILM, S = window.KnotSound;
+  const html = document.documentElement, F = window.FILM, S = window.KnotSound, K = window.KNOT;
   const $ = (s) => document.querySelector(s), all = (s, r = document) => [...r.querySelectorAll(s)];
   // No films, no journey: the ordinary page still says everything.
-  if (!F) { html.classList.remove("paged", "reel", "titled"); html.classList.add("flow"); return; }
+  if (!F || html.classList.contains("flow")) { html.classList.remove("paged", "reel", "titled"); html.classList.add("flow"); if (K) K.started = true; return; }
+  const phoneLayout = matchMedia("(max-aspect-ratio: 23/20), (max-width: 860px) and (min-height: 561px)"), dots = phoneLayout.matches;
   const IDS = ["top", "how", "features", "proof", "turn", "download"], LAST = IDS.length - 1, HOW = 1, FEATURES = 2, PROOF = 3, TURN = 4;
-  const pages = IDS.map((id) => $("#" + id)), stepWords = all("#how .steps b"), feats = all("#features .feat"), shots = all("#shots img"), tabs = all(".tabs button");
+  const pages = IDS.map((id) => $("#" + id)), stepWords = all("#how .steps b"), stepsBox = $("#how .steps"), feats = all("#features .feat"), shots = all("#shots img"), tabs = all(".tabs button"), links = all("[data-go]");
   for (const p of pages) all(".r", p).forEach((r, k) => r.style.setProperty("--i", k));
 
   // ---- the stage ----
@@ -41,7 +42,7 @@
     v.src = url(name); v.load();
     if (going) v.play().catch(() => {});
   }));
-  let at = 0, part = "a", live = null, fading = null, starting = null, top = 1, next = 0, noteI = 0, wraps = 0, lastT = 0, dead = false, tapped = false, onward = false;
+  let lastLv = 0, at = 0, part = "a", live = null, fading = null, starting = null, top = 1, next = 0, noteI = 0, wraps = 0, lastT = 0, dead = false, tapped = false, onward = false;
   const seg = () => F.segments[at];
 
   function load(v, name) {
@@ -56,7 +57,7 @@
     const have = holds.get(name);
     if (have) return have;
     const keep = [live, fading, starting];
-    const v = pool.find((p) => !keep.includes(p) && ![...holds].some(([k, h]) => h === p && k === wanted())) ?? pool.find((p) => !keep.includes(p));
+    const v = pool.find((p) => !keep.includes(p) && ![...holds].some(([k, h]) => h === p && k === wanted())) ?? pool.find((p) => !keep.includes(p)) ?? pool.find((p) => p !== live);
     return load(v, name);
   }
   const wanted = () => (part === "a" ? seg().b : F.segments[at + 1]?.a);
@@ -98,6 +99,7 @@
   function stillOnly() {
     if (dead) return;
     dead = true; starting = null;
+    for (const v of pool) { v.pause(); v.style.visibility = "hidden"; }
     finishLoader();
     html.classList.remove("intro");
     box.style.backgroundImage = `url(${F.base}${seg().poster})`;
@@ -108,12 +110,12 @@
   const finishLoader = () => $("#loader")?.classList.add("done");
 
   // ---- words ----
-  function enter(i) { pages[i].classList.remove("off"); pages[i].classList.add("on"); }
+  function enter(i) { pages[i].classList.remove("off"); pages[i].classList.add("on"); if (i === HOW && !dots) stepsBox.classList.add("walk"); }
   function leave(i) {
     const p = pages[i];
     p.classList.remove("on"); p.classList.add("off");
     setTimeout(() => p.classList.remove("off"), 260);
-    if (i === HOW) stepWords.forEach((b) => { b.classList.remove("live"); b.parentElement.classList.remove("on"); });
+    if (i === HOW) { stepsBox.classList.remove("walk"); stepWords.forEach((b) => { b.classList.remove("live"); b.parentElement.classList.remove("on"); }); }
     if (i === FEATURES) feats.forEach((f) => f.classList.remove("live"));
     if (i === TURN) setTimeout(() => { if (at !== TURN) pages[TURN].classList.remove("swap"); }, 300);
   }
@@ -131,10 +133,17 @@
 
   // ---- the journey ----
   const tickBox = $(".ticks");
-  IDS.forEach(() => tickBox.append(document.createElement("span")));
-  tickBox.setAttribute("aria-hidden", "true");
-  const ticks = all("span", tickBox);
-  const mark = (i) => ticks.forEach((b, j) => b.toggleAttribute("aria-current", j === i));
+  IDS.forEach((id, i) => {
+    const b = document.createElement(dots ? "span" : "button");
+    if (!dots) { b.type = "button"; b.setAttribute("aria-label", `Go to screen ${i + 1} of ${IDS.length}`); b.addEventListener("click", () => go(i)); }
+    tickBox.append(b);
+  });
+  if (dots) tickBox.setAttribute("aria-hidden", "true");
+  const ticks = all("button, span", tickBox);
+  const mark = (i) => {
+    ticks.forEach((b, j) => b.toggleAttribute("aria-current", j === i));
+    links.forEach((a) => a.toggleAttribute("aria-current", a.dataset.go === IDS[i] && !a.classList.contains("btn")));
+  };
   const rearm = (t) => {
     const s = seg(), ev = part === "a" ? s.events : s.loop, no = part === "a" ? s.notes : s.loopNotes;
     next = 0; while (next < ev.length && ev[next][0] <= t) DO[ev[next][1]]?.(ev[next][2]), next++;
@@ -144,8 +153,9 @@
   function go(i) {
     i = Math.max(0, Math.min(LAST, i));
     if (i === at) return;
-    if (dead) { leave(at); at = i; box.style.backgroundImage = `url(${F.base}${seg().poster})`; mark(i); setTimeout(() => { enter(at); if (at === HOW) setStep(0); if (at === FEATURES) setFeat(0); if (at === PROOF) setShot(0); }, 280); return; }
     html.classList.remove("intro", "night", "dusk");
+    try { history.replaceState(null, "", i ? "#" + IDS[i] : location.pathname + location.search); } catch {}
+    if (dead) { leave(at); at = i; box.style.backgroundImage = `url(${F.base}${seg().poster})`; mark(i); setTimeout(() => { enter(at); if (at === HOW) setStep(0); if (at === FEATURES) setFeat(0); if (at === PROOF) setShot(0); }, 280); return; }
     const forward = i === at + 1, old = at;
     onward = false;
     leave(old);
@@ -189,7 +199,8 @@
     if (part === "a" && !s.hold && rate !== 1 && t >= s.fly) v.playbackRate = 1;
     if (part === "a" && (t >= s.aDur - .17 || v.ended)) { if (onward) go(at + 1); else toLoop(); }
     const lv = S.on && S.unlocked ? S.level() : 0;
-    bars.forEach((b, j) => b.style.setProperty("--b", (.28 + Math.min(.72, lv * (2.6 + j * 1.1 - (j === 2 ? 2 : 0)))).toFixed(2)));
+    if (lv || lastLv) bars.forEach((b, j) => b.style.setProperty("--b", (.28 + Math.min(.72, lv * (2.6 + j * 1.1 - (j === 2 ? 2 : 0)))).toFixed(2)));
+    lastLv = lv;
   }
 
   // ---- gestures ----
@@ -211,6 +222,7 @@
   }, { passive: true });
   let armed = true, lastWheel = 0;
   addEventListener("wheel", (e) => {
+    if (e.ctrlKey || e.metaKey) return;
     e.preventDefault();
     const now = performance.now();
     if (now - lastWheel > 160) armed = true;
@@ -218,13 +230,15 @@
     if (armed && Math.abs(e.deltaY) >= 3) { armed = false; step(Math.sign(e.deltaY)); }
   }, { passive: false });
   addEventListener("keydown", (e) => {
-    if (["ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); step(1); } else if (["ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); step(-1); } else if (e.key === "Home") go(0); else if (e.key === "End") go(LAST);
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const on = e.target.closest?.("a, button");
+    if (["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !on)) { e.preventDefault(); step(1); } else if (["ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); step(-1); } else if (e.key === "Home") go(0); else if (e.key === "End") go(LAST);
   });
   document.addEventListener("click", (e) => {
     const g = e.target.closest("[data-go]");
-    if (g && !g.hasAttribute("data-send")) { e.preventDefault(); go(IDS.indexOf(g.dataset.go)); }
+    if (g && (!dots || !g.hasAttribute("data-send"))) { e.preventDefault(); go(IDS.indexOf(g.dataset.go)); }
     const s = e.target.closest("[data-send]");
-    if (!s) return;
+    if (!s || !dots) return; // a computer's download link is an ordinary link
     e.preventDefault();
     const LINK = "https://dinesh4720.github.io/design-app-releases/download.html", label = s.querySelector(".send"), was = label.dataset.was ??= label.textContent;
     const say = (t) => { label.textContent = t; clearTimeout(label.timer); label.timer = setTimeout(() => { label.textContent = was; }, 2600); };
@@ -263,15 +277,48 @@
   }
   addEventListener("visibilitychange", () => { if (!document.hidden && live && !dead) live.play().catch(() => {}); });
 
+  // A film needs fitting on a computer's window, as the live page does, and may have to change with it.
+  const fit = () => {
+    for (const p of pages) {
+      const inner = p.querySelector(".inner"), cs = getComputedStyle(p);
+      inner.style.zoom = "";
+      const room = innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom), h = inner.offsetHeight;
+      if (h > room) inner.style.zoom = String(room / h);
+    }
+  };
+  if (!dots) { let settling = 0; fit(); K?.font.then(fit); addEventListener("resize", () => { clearTimeout(settling); settling = setTimeout(fit, 120); }); }
+  for (const q of [phoneLayout, matchMedia("(max-aspect-ratio: 23/20)")]) q.addEventListener("change", () => location.reload());
+  // Where even a film is too much, its pictures and the words are still the journey.
+  let was = { of: null, all: 0, lost: 0 }, bad = 0;
+  setInterval(() => {
+    const q = live?.getVideoPlaybackQuality?.();
+    if (!q || dead || document.hidden || live.playbackRate !== 1) { was = { of: null, all: 0, lost: 0 }; return; }
+    const all = q.totalVideoFrames - was.all, lost = q.droppedVideoFrames - was.lost;
+    if (was.of === live && all > 60) bad = lost / all > .5 ? bad + 1 : 0;
+    if (bad >= 2) stillOnly();
+    was = { of: live, all: q.totalVideoFrames, lost: q.droppedVideoFrames };
+  }, 4000);
+
   // ---- off we go ----
-  html.classList.add("intro");
-  pages[0].classList.remove("on");
-  mark(0);
-  const first = load(pool[0], seg().a);
-  start(first, 200, () => { finishLoader(); prepare(seg().b); });
+  // Arriving from the live world part way through, or at a link to a screen: straight to that screen.
+  const landing = Math.max(0, IDS.indexOf(location.hash.slice(1)));
+  mark(landing);
+  if (landing) {
+    at = landing; part = "b";
+    pages[0].classList.remove("on");
+    enter(at);
+    if (at === HOW) setStep(0);
+    if (at === FEATURES) setFeat(0);
+    start(load(pool[0], seg().b), 200, () => { finishLoader(); rearm(0); prepare(F.segments[at + 1]?.a); });
+  } else {
+    html.classList.add("intro");
+    pages[0].classList.remove("on");
+    start(load(pool[0], seg().a), 200, () => { finishLoader(); prepare(seg().b); });
+  }
   fetchNear();
   // Low Power Mode won't start a film by itself: don't wait for it.
   setTimeout(() => { if (!live) stillOnly(); }, 5000);
   requestAnimationFrame(frame);
   window.__reel = { go, get at() { return at; }, get part() { return part; }, get time() { return live?.currentTime; }, get live() { return live; }, get holds() { return [...holds.keys()]; }, get dead() { return dead; } };
+  if (K) K.started = true;
 })();
